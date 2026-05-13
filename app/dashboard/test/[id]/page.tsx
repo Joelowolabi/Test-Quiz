@@ -12,6 +12,7 @@ export default function TestDetailDashboard({ params }: { params: { id: string }
   const [submissions, setSubmissions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
+  const [expandedSubmission, setExpandedSubmission] = useState<string | null>(null);
 
   useEffect(() => {
     fetchTestData();
@@ -221,41 +222,73 @@ export default function TestDetailDashboard({ params }: { params: { id: string }
           ) : (
             <div className="space-y-4">
               {submissions.map((sub, idx) => (
-                <div key={sub.id} className="flex justify-between items-center p-4 bg-[#0a0a0a] rounded-2xl border border-white/5 hover:border-young-purple/30 transition-colors group">
-                  <div className="flex items-center gap-4">
-                    <span className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${idx === 0 ? 'bg-young-orange text-white shadow-[0_0_10px_rgba(249,115,22,0.5)]' : idx === 1 ? 'bg-gray-300 text-young-black' : idx === 2 ? 'bg-orange-200 text-orange-800' : 'bg-white/5 text-gray-500'}`}>
-                      {idx + 1}
-                    </span>
-                    <div>
-                      <p className="font-bold text-white group-hover:text-young-purple transition-colors">{sub.student_name}</p>
-                      <p className="text-xs text-gray-500 font-medium">{sub.student_email}</p>
+                <div key={sub.id} className="bg-[#0a0a0a] rounded-2xl border border-white/5 hover:border-young-purple/30 transition-colors p-4 group">
+                  <div className="flex justify-between items-center cursor-pointer" onClick={() => setExpandedSubmission(expandedSubmission === sub.id ? null : sub.id)}>
+                    <div className="flex items-center gap-4">
+                      <span className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${idx === 0 ? 'bg-young-orange text-white shadow-[0_0_10px_rgba(249,115,22,0.5)]' : idx === 1 ? 'bg-gray-300 text-young-black' : idx === 2 ? 'bg-orange-200 text-orange-800' : 'bg-white/5 text-gray-500'}`}>
+                        {idx + 1}
+                      </span>
+                      <div>
+                        <p className="font-bold text-white group-hover:text-young-purple transition-colors">{sub.student_name}</p>
+                        <p className="text-xs text-gray-500 font-medium">{sub.student_email}</p>
+                      </div>
+                    </div>
+                    <div className="text-right flex flex-col items-end gap-1">
+                      <p className="font-black text-xl text-young-green">
+                        {sub.score}<span className="text-sm text-gray-500">/{sub.total_questions}</span>
+                      </p>
+                      
+                      {sub.result_released ? (
+                        <span className="text-xs font-bold text-young-green bg-young-green/10 px-2 py-0.5 rounded-full border border-young-green/20">Released</span>
+                      ) : sub.result_requested ? (
+                        <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                          <span className="text-xs font-bold text-young-orange bg-young-orange/10 px-2 py-0.5 rounded-full border border-young-orange/20">Requested</span>
+                          <button
+                            onClick={() => handleGrantAccess(sub.id)}
+                            className="text-xs font-bold text-white bg-young-purple hover:bg-young-purple/80 px-2 py-0.5 rounded-full"
+                          >
+                            Grant
+                          </button>
+                        </div>
+                      ) : (
+                        <span className="text-xs font-bold text-gray-500 bg-white/5 px-2 py-0.5 rounded-full border border-white/10">Hidden</span>
+                      )}
+
+                      <p className="text-xs text-gray-500 font-medium flex items-center justify-end gap-1 mt-1">
+                        <Clock size={12} /> {new Date(sub.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                      </p>
                     </div>
                   </div>
-                  <div className="text-right flex flex-col items-end gap-1">
-                    <p className="font-black text-xl text-young-green">
-                      {sub.score}<span className="text-sm text-gray-500">/{sub.total_questions}</span>
-                    </p>
-                    
-                    {sub.result_released ? (
-                      <span className="text-xs font-bold text-young-green bg-young-green/10 px-2 py-0.5 rounded-full border border-young-green/20">Released</span>
-                    ) : sub.result_requested ? (
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs font-bold text-young-orange bg-young-orange/10 px-2 py-0.5 rounded-full border border-young-orange/20">Requested</span>
-                        <button
-                          onClick={() => handleGrantAccess(sub.id)}
-                          className="text-xs font-bold text-white bg-young-purple hover:bg-young-purple/80 px-2 py-0.5 rounded-full"
-                        >
-                          Grant
-                        </button>
-                      </div>
-                    ) : (
-                      <span className="text-xs font-bold text-gray-500 bg-white/5 px-2 py-0.5 rounded-full border border-white/10">Hidden</span>
-                    )}
 
-                    <p className="text-xs text-gray-500 font-medium flex items-center justify-end gap-1 mt-1">
-                      <Clock size={12} /> {new Date(sub.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
-                    </p>
-                  </div>
+                  {/* Expanded Section */}
+                  {expandedSubmission === sub.id && (
+                    <div className="mt-4 border-t border-white/5 pt-4 space-y-4">
+                      {questions.map((q, i) => {
+                        const studentAnswer = sub.answers && sub.answers[q.id];
+                        const isCorrect = studentAnswer === q.correct_answer;
+                        return (
+                          <div key={q.id} className="p-3 bg-black/20 rounded-xl border border-white/5">
+                            <p className="font-bold text-sm text-white mb-2">
+                              <span className="text-young-purple mr-1">Q{i+1}.</span>{q.question_text}
+                            </p>
+                            <div className="flex flex-wrap gap-2 items-center text-xs">
+                              <span className={`px-2 py-0.5 rounded-full font-bold uppercase ${isCorrect ? 'bg-young-green/20 text-young-green border border-young-green/20' : 'bg-red-400/20 text-red-400 border border-red-400/20'}`}>
+                                {isCorrect ? 'Correct' : 'Incorrect'}
+                              </span>
+                              <span className="text-gray-400 font-medium">
+                                Answered: <span className={isCorrect ? 'text-young-green font-bold' : 'text-red-400 font-bold'}>{studentAnswer || "No Answer"}</span>
+                              </span>
+                              {!isCorrect && (
+                                <span className="text-gray-400 font-medium">
+                                  Correct: <span className="text-young-green font-bold">{q.correct_answer}</span>
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
