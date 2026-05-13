@@ -11,6 +11,13 @@ export default function DashboardPage() {
   const [tests, setTests] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
+  const [folders, setFolders] = useState<any[]>([]);
+  const [selectedFolder, setSelectedFolder] = useState<string | null>(null);
+  const [selectedStatus, setSelectedStatus] = useState<string>("published");
+  const [newFolderName, setNewFolderName] = useState("");
+  const [isCreatingFolder, setIsCreatingFolder] = useState(false);
+  const [targetFolder, setTargetFolder] = useState<string | null>(null);
+  const [targetStatus, setTargetStatus] = useState<string>("published");
   
   // Generation State
   const [sourceType, setSourceType] = useState<"text" | "url" | "file" | "manual">("text");
@@ -34,6 +41,7 @@ export default function DashboardPage() {
       } else {
         setUser(user);
         fetchTests(user.id);
+        fetchFolders(user.id);
       }
     };
     checkUser();
@@ -41,11 +49,18 @@ export default function DashboardPage() {
 
   const fetchTests = async (userId: string) => {
     try {
-      const { data, error } = await supabase
+      setLoading(true);
+      let query = supabase
         .from('tests')
         .select('*, submissions(count)')
         .eq('user_id', userId)
-        .order('created_at', { ascending: false });
+        .eq('status', selectedStatus);
+        
+      if (selectedFolder) {
+        query = query.eq('folder_id', selectedFolder);
+      }
+        
+      const { data, error } = await query.order('created_at', { ascending: false });
         
       if (error) throw error;
       setTests(data || []);
@@ -53,6 +68,45 @@ export default function DashboardPage() {
       console.error("Error fetching tests:", err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (user) {
+      fetchTests(user.id);
+    }
+  }, [selectedStatus, selectedFolder]);
+
+  const fetchFolders = async (userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('folders')
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false });
+        
+      if (error) throw error;
+      setFolders(data || []);
+    } catch (err: any) {
+      console.error("Error fetching folders:", err);
+    }
+  };
+
+  const handleCreateFolder = async () => {
+    if (!newFolderName.trim()) return;
+    try {
+      const { data, error } = await supabase
+        .from('folders')
+        .insert([{ name: newFolderName, user_id: user.id }])
+        .select()
+        .single();
+        
+      if (error) throw error;
+      setFolders([data, ...folders]);
+      setNewFolderName("");
+      setIsCreatingFolder(false);
+    } catch (err: any) {
+      console.error("Error creating folder:", err);
     }
   };
 
@@ -114,7 +168,9 @@ export default function DashboardPage() {
           title, 
           source_content: sourceType === 'text' ? sourceContent : sourceType === 'url' ? `URL(s): ${sourceContent}` : sourceType === 'file' ? 'Uploaded File' : 'Manually Created',
           time_limit: timeLimit,
-          user_id: user.id
+          user_id: user.id,
+          folder_id: targetFolder,
+          status: targetStatus
         }])
         .select()
         .single();
@@ -373,6 +429,32 @@ export default function DashboardPage() {
                 </select>
               </div>
 
+              <div>
+                <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Folder</label>
+                <select
+                  value={targetFolder || ""}
+                  onChange={(e) => setTargetFolder(e.target.value || null)}
+                  className="w-full px-4 py-3 bg-white/5 text-white border border-white/10 rounded-xl focus:border-young-purple focus:ring-2 focus:ring-young-purple/20 outline-none transition-all font-medium"
+                >
+                  <option value="" className="bg-[#1a1a1a]">No Folder</option>
+                  {folders.map((folder) => (
+                    <option key={folder.id} value={folder.id} className="bg-[#1a1a1a]">{folder.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Status</label>
+                <select
+                  value={targetStatus}
+                  onChange={(e) => setTargetStatus(e.target.value)}
+                  className="w-full px-4 py-3 bg-white/5 text-white border border-white/10 rounded-xl focus:border-young-purple focus:ring-2 focus:ring-young-purple/20 outline-none transition-all font-medium"
+                >
+                  <option value="published" className="bg-[#1a1a1a]">Published</option>
+                  <option value="draft" className="bg-[#1a1a1a]">Draft</option>
+                </select>
+              </div>
+
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Total Qs (Max 100)</label>
@@ -420,6 +502,84 @@ export default function DashboardPage() {
 
         {/* Existing Tests List */}
         <div className="md:col-span-2">
+          {/* Folders & Status Filters */}
+          <div className="mb-6 space-y-4">
+            {/* Status Tabs */}
+            <div className="flex gap-2 border-b border-white/5 pb-4">
+              {['published', 'draft', 'archived'].map((status) => (
+                <button
+                  key={status}
+                  onClick={() => setSelectedStatus(status)}
+                  className={`px-4 py-2 rounded-lg font-bold text-sm uppercase tracking-wider transition-all ${
+                    selectedStatus === status 
+                      ? 'bg-young-purple text-white' 
+                      : 'bg-white/5 text-gray-500 hover:bg-white/10 hover:text-white'
+                  }`}
+                >
+                  {status}
+                </button>
+              ))}
+            </div>
+
+            {/* Folders List */}
+            <div className="flex gap-2 overflow-x-auto pb-2">
+              <button
+                onClick={() => setSelectedFolder(null)}
+                className={`px-4 py-2 rounded-full font-medium text-sm whitespace-nowrap transition-all ${
+                  selectedFolder === null 
+                    ? 'bg-white/10 text-white' 
+                    : 'bg-white/5 text-gray-500 hover:bg-white/10'
+                }`}
+              >
+                All Tests
+              </button>
+              {folders.map((folder) => (
+                <button
+                  key={folder.id}
+                  onClick={() => setSelectedFolder(folder.id)}
+                  className={`px-4 py-2 rounded-full font-medium text-sm whitespace-nowrap transition-all ${
+                    selectedFolder === folder.id 
+                      ? 'bg-white/10 text-white' 
+                      : 'bg-white/5 text-gray-500 hover:bg-white/10'
+                  }`}
+                >
+                  📁 {folder.name}
+                </button>
+              ))}
+              
+              {/* Create Folder Button */}
+              {isCreatingFolder ? (
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    value={newFolderName}
+                    onChange={(e) => setNewFolderName(e.target.value)}
+                    className="px-3 py-1.5 bg-white/5 text-white border border-white/10 rounded-lg text-sm focus:border-young-purple outline-none"
+                    placeholder="Folder name..."
+                  />
+                  <button
+                    onClick={handleCreateFolder}
+                    className="p-1.5 bg-young-purple text-white rounded-lg hover:bg-young-purple/80"
+                  >
+                    <Plus size={16} />
+                  </button>
+                  <button
+                    onClick={() => setIsCreatingFolder(false)}
+                    className="p-1.5 bg-white/5 text-gray-500 rounded-lg hover:bg-white/10"
+                  >
+                    ✕
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => setIsCreatingFolder(true)}
+                  className="px-4 py-2 rounded-full font-medium text-sm whitespace-nowrap bg-white/5 text-young-purple hover:bg-white/10 flex items-center gap-1"
+                >
+                  <Plus size={14} /> New Folder
+                </button>
+              )}
+            </div>
+          </div>
           {loading ? (
             <div className="flex justify-center py-20"><Loader2 className="animate-spin text-young-purple" size={40} /></div>
           ) : tests.length === 0 ? (
