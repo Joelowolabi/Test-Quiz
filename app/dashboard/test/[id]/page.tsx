@@ -35,6 +35,22 @@ export default function TestDetailDashboard({ params }: { params: { id: string }
     }
   };
 
+  const handleGrantAccess = async (submissionId: string) => {
+    try {
+      const { error } = await supabase
+        .from('submissions')
+        .update({ result_released: true })
+        .eq('id', submissionId);
+        
+      if (error) throw error;
+      setSubmissions(prev => prev.map(sub => 
+        sub.id === submissionId ? { ...sub, result_released: true } : sub
+      ));
+    } catch (err) {
+      console.error("Error granting access", err);
+    }
+  };
+
   const copyLink = () => {
     const link = `${window.location.origin}/test/${params.id}`;
     navigator.clipboard.writeText(link);
@@ -215,11 +231,28 @@ export default function TestDetailDashboard({ params }: { params: { id: string }
                       <p className="text-xs text-gray-500 font-medium">{sub.student_email}</p>
                     </div>
                   </div>
-                  <div className="text-right">
+                  <div className="text-right flex flex-col items-end gap-1">
                     <p className="font-black text-xl text-young-green">
                       {sub.score}<span className="text-sm text-gray-500">/{sub.total_questions}</span>
                     </p>
-                    <p className="text-xs text-gray-500 font-medium flex items-center justify-end gap-1">
+                    
+                    {sub.result_released ? (
+                      <span className="text-xs font-bold text-young-green bg-young-green/10 px-2 py-0.5 rounded-full border border-young-green/20">Released</span>
+                    ) : sub.result_requested ? (
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-bold text-young-orange bg-young-orange/10 px-2 py-0.5 rounded-full border border-young-orange/20">Requested</span>
+                        <button
+                          onClick={() => handleGrantAccess(sub.id)}
+                          className="text-xs font-bold text-white bg-young-purple hover:bg-young-purple/80 px-2 py-0.5 rounded-full"
+                        >
+                          Grant
+                        </button>
+                      </div>
+                    ) : (
+                      <span className="text-xs font-bold text-gray-500 bg-white/5 px-2 py-0.5 rounded-full border border-white/10">Hidden</span>
+                    )}
+
+                    <p className="text-xs text-gray-500 font-medium flex items-center justify-end gap-1 mt-1">
                       <Clock size={12} /> {new Date(sub.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
                     </p>
                   </div>

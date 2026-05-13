@@ -19,11 +19,12 @@ export default function StudentTestPage({ params }: { params: { id: string } }) 
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [score, setScore] = useState(0);
-
-  // Gamification state
   const [leaderboard, setLeaderboard] = useState<any[]>([]);
   const [timeLeft, setTimeLeft] = useState<number | null>(null);
   const [cheatWarnings, setCheatWarnings] = useState(0);
+  const [resultRequested, setResultRequested] = useState(false);
+  const [resultReleased, setResultReleased] = useState(false);
+  const [submissionId, setSubmissionId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchTestData();
@@ -56,6 +57,26 @@ export default function StudentTestPage({ params }: { params: { id: string } }) 
     return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
   }, [step]);
 
+  useEffect(() => {
+    let poller: any;
+    if (step === "result" && !resultReleased && submissionId) {
+      poller = setInterval(async () => {
+        const { data } = await supabase
+          .from('submissions')
+          .select('result_released')
+          .eq('id', submissionId)
+          .single();
+          
+        if (data && data.result_released) {
+          setResultReleased(true);
+        }
+      }, 5000);
+    }
+    return () => {
+      if (poller) clearInterval(poller);
+    };
+  }, [step, resultReleased, submissionId]);
+
   const formatTime = (seconds: number) => {
     const m = Math.floor(seconds / 60);
     const s = seconds % 60;
@@ -70,7 +91,11 @@ export default function StudentTestPage({ params }: { params: { id: string } }) 
       ]);
 
       if (testRes.data) setTest(testRes.data);
-      if (qRes.data) setQuestions(qRes.data);
+      if (qRes.data) {
+        // Shuffle questions
+        const shuffled = [...qRes.data].sort(() => Math.random() - 0.5);
+        setQuestions(shuffled);
+      }
     } catch (err) {
       console.error(err);
     } finally {
@@ -118,14 +143,18 @@ export default function StudentTestPage({ params }: { params: { id: string } }) 
       setScore(calculatedScore);
 
       // Save to Supabase
-      await supabase.from('submissions').insert([{
+      const { data, error } = await supabase.from('submissions').insert([{
         test_id: test.id,
         student_name: studentName,
         student_email: studentEmail,
         score: calculatedScore,
         total_questions: questions.length,
         answers: answers
-      }]);
+      }])
+      .select()
+      .single();
+
+      if (data) setSubmissionId(data.id);
 
       // Fetch Leaderboard
       const { data: lbData } = await supabase
@@ -143,6 +172,21 @@ export default function StudentTestPage({ params }: { params: { id: string } }) 
       alert("There was an error submitting your test.");
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleRequestResult = async () => {
+    if (!submissionId) return;
+    try {
+      const { error } = await supabase
+        .from('submissions')
+        .update({ result_requested: true })
+        .eq('id', submissionId);
+        
+      if (error) throw error;
+      setResultRequested(true);
+    } catch (err) {
+      console.error("Error requesting result", err);
     }
   };
 
@@ -296,15 +340,31 @@ export default function StudentTestPage({ params }: { params: { id: string } }) 
                 <h2 className="text-3xl font-black mb-2">Test Completed!</h2>
                 <p className="text-young-black/80 font-bold mb-8">Great job, {studentName.split(' ')[0]}.</p>
                 
-                <div className="bg-white/90 backdrop-blur p-8 rounded-3xl mb-8">
-                  <p className="text-sm font-bold text-gray-500 uppercase tracking-widest mb-2">Your Score</p>
-                  <p className="text-6xl font-black text-young-purple">
-                    {score}<span className="text-3xl text-gray-400">/{questions.length}</span>
-                  </p>
-                  <p className="text-lg font-bold mt-2 text-young-black">
-                    {Math.round((score / questions.length) * 100)}%
-                  </p>
-                </div>
+                {resultReleased ? (
+                  <div className="bg-white/90 backdrop-blur p-8 rounded-3xl mb-8">
+                    <p className="text-sm font-bold text-gray-500 uppercase tracking-widest mb-2">Your Score</p>
+                    <p className="text-6xl font-black text-young-purple">
+                      {score}<span className="text-3xl text-gray-400">/{questions.length}</span>
+                    </p>
+                    <p className="text-lg font-bold mt-2 text-young-black">
+                      {Math.round((score / questions.length) * 100)}%
+                    </p>
+                  </div>
+                ) : (
+                  <div className="bg-white/90 backdrop-blur p-8 rounded-3xl mb-8">
+                    <p className="text-lg font-bold text-young-black mb-4">Results are hidden by the teacher.</p>
+                    {resultRequested ? (
+                      <p className="text-sm font-medium text-gray-500">Request sent. Waiting for teacher approval...</p>
+                    ) : (
+                      <button
+                        onClick={handleRequestResult}
+                        className="btn-primary w-full"
+                      >
+                        Ask to see my result
+                      </button>
+                    )}
+                  </div>
+                )}
 
                 {leaderboard.length > 0 && (
                   <div className="bg-white text-left p-6 rounded-3xl mb-8 shadow-sm border border-gray-100 relative z-10">
