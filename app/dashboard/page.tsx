@@ -10,6 +10,7 @@ export default function DashboardPage() {
   const router = useRouter();
   const [tests, setTests] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState<any>(null);
   
   // Generation State
   const [sourceType, setSourceType] = useState<"text" | "url" | "file" | "manual">("text");
@@ -26,14 +27,24 @@ export default function DashboardPage() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    fetchTests();
+    const checkUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        router.push("/login");
+      } else {
+        setUser(user);
+        fetchTests(user.id);
+      }
+    };
+    checkUser();
   }, []);
 
-  const fetchTests = async () => {
+  const fetchTests = async (userId: string) => {
     try {
       const { data, error } = await supabase
         .from('tests')
         .select('*, submissions(count)')
+        .eq('user_id', userId)
         .order('created_at', { ascending: false });
         
       if (error) throw error;
@@ -102,7 +113,8 @@ export default function DashboardPage() {
         .insert([{ 
           title, 
           source_content: sourceType === 'text' ? sourceContent : sourceType === 'url' ? `URL(s): ${sourceContent}` : sourceType === 'file' ? 'Uploaded File' : 'Manually Created',
-          time_limit: timeLimit
+          time_limit: timeLimit,
+          user_id: user.id
         }])
         .select()
         .single();
