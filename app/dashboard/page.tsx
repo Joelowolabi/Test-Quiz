@@ -19,6 +19,7 @@ export default function DashboardPage() {
   const [sourceContent, setSourceContent] = useState("");
   const [title, setTitle] = useState("");
   const [questionCount, setQuestionCount] = useState(5);
+  const [timeLimit, setTimeLimit] = useState(0); // 0 = no limit
   const [difficulty, setDifficulty] = useState("Medium");
   const [questionType, setQuestionType] = useState("Multiple Choice");
   const [isGenerating, setIsGenerating] = useState(false);
@@ -100,7 +101,8 @@ export default function DashboardPage() {
         .from('tests')
         .insert([{ 
           title, 
-          source_content: sourceType === 'text' ? sourceContent : sourceType === 'url' ? `URL(s): ${sourceContent}` : sourceType === 'file' ? 'Uploaded File' : 'Manually Created'
+          source_content: sourceType === 'text' ? sourceContent : sourceType === 'url' ? `URL(s): ${sourceContent}` : sourceType === 'file' ? 'Uploaded File' : 'Manually Created',
+          time_limit: timeLimit
         }])
         .select()
         .single();
@@ -356,15 +358,32 @@ export default function DashboardPage() {
                 </select>
               </div>
 
-              <div>
-                <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Total Qs (Max 100)</label>
-                <input 
-                  type="number" 
-                  min="1" max="100"
-                  value={questionCount}
-                  onChange={(e) => setQuestionCount(parseInt(e.target.value))}
-                  className="w-full px-4 py-3 bg-white/5 text-white border border-white/10 rounded-xl focus:border-young-purple focus:ring-2 focus:ring-young-purple/20 outline-none transition-all font-medium"
-                />
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Total Qs (Max 100)</label>
+                  <input 
+                    type="number" 
+                    min="1" max="100"
+                    value={questionCount}
+                    onChange={(e) => setQuestionCount(parseInt(e.target.value))}
+                    className="w-full px-4 py-3 bg-white/5 text-white border border-white/10 rounded-xl focus:border-young-purple focus:ring-2 focus:ring-young-purple/20 outline-none transition-all font-medium"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Time Limit (Mins)</label>
+                  <select
+                    value={timeLimit}
+                    onChange={(e) => setTimeLimit(parseInt(e.target.value))}
+                    className="w-full px-4 py-3 bg-white/5 text-white border border-white/10 rounded-xl focus:border-young-purple focus:ring-2 focus:ring-young-purple/20 outline-none transition-all font-medium"
+                  >
+                    <option value={0} className="bg-[#1a1a1a]">No Time Limit</option>
+                    <option value={15} className="bg-[#1a1a1a]">15 Minutes</option>
+                    <option value={30} className="bg-[#1a1a1a]">30 Minutes</option>
+                    <option value={45} className="bg-[#1a1a1a]">45 Minutes</option>
+                    <option value={60} className="bg-[#1a1a1a]">60 Minutes</option>
+                    <option value={90} className="bg-[#1a1a1a]">90 Minutes</option>
+                  </select>
+                </div>
               </div>
             </div>
 
@@ -407,6 +426,11 @@ export default function DashboardPage() {
                     <p className="text-xs text-gray-500 font-medium">
                       {new Date(test.created_at).toLocaleDateString()}
                     </p>
+                    {test.time_limit > 0 && (
+                      <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-white/5 text-gray-400 border border-white/10">
+                        {test.time_limit} Mins
+                      </span>
+                    )}
                   </div>
                   
                   <div className="mt-auto flex items-center justify-between z-10">

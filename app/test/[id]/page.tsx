@@ -22,10 +22,45 @@ export default function StudentTestPage({ params }: { params: { id: string } }) 
 
   // Gamification state
   const [leaderboard, setLeaderboard] = useState<any[]>([]);
+  const [timeLeft, setTimeLeft] = useState<number | null>(null);
+  const [cheatWarnings, setCheatWarnings] = useState(0);
 
   useEffect(() => {
     fetchTestData();
   }, [params.id]);
+
+  useEffect(() => {
+    if (step === "test" && timeLeft === null && test?.time_limit > 0) {
+      setTimeLeft(test.time_limit * 60); 
+    }
+  }, [step, test, timeLeft]);
+
+  useEffect(() => {
+    if (step === "test" && timeLeft !== null && timeLeft > 0) {
+      const timerId = setTimeout(() => setTimeLeft(prev => prev! - 1), 1000);
+      return () => clearTimeout(timerId);
+    } else if (step === "test" && timeLeft === 0 && !isSubmitting) {
+      submitTest();
+    }
+  }, [timeLeft, step, isSubmitting]);
+
+  // Basic Anti-Cheat: Page Visibility
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.hidden && step === "test") {
+        setCheatWarnings(prev => prev + 1);
+        alert("Warning: You have switched tabs or minimized the browser. Doing this repeatedly may invalidate your test.");
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
+  }, [step]);
+
+  const formatTime = (seconds: number) => {
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    return `${m}:${s.toString().padStart(2, '0')}`;
+  };
 
   const fetchTestData = async () => {
     try {
@@ -61,6 +96,12 @@ export default function StudentTestPage({ params }: { params: { id: string } }) 
       setCurrentQuestionIndex(prev => prev + 1);
     } else {
       submitTest();
+    }
+  };
+
+  const handlePrevious = () => {
+    if (currentQuestionIndex > 0) {
+      setCurrentQuestionIndex(prev => prev - 1);
     }
   };
 
@@ -119,6 +160,16 @@ export default function StudentTestPage({ params }: { params: { id: string } }) 
         <div className="font-black text-xl"><span className="text-young-purple">YOUNG</span>&amp;TEST</div>
         {step === "test" && (
           <div className="flex gap-4 items-center">
+            {cheatWarnings > 0 && (
+              <div className="text-xs font-bold px-3 py-1.5 rounded-full bg-orange-100 text-orange-600 border border-orange-200">
+                Warnings: {cheatWarnings}
+              </div>
+            )}
+            {timeLeft !== null && (
+              <div className={`text-sm font-bold px-4 py-2 rounded-full flex items-center gap-2 ${timeLeft < 60 ? 'bg-red-100 text-red-600 border border-red-200 shadow-sm' : 'bg-young-green/20 text-young-green border border-young-green/30 shadow-sm'}`}>
+                <Clock size={16} /> {formatTime(timeLeft)}
+              </div>
+            )}
             <div className="text-sm font-bold bg-white px-4 py-2 rounded-full border border-gray-200 shadow-sm">
               Question {currentQuestionIndex + 1} of {questions.length}
             </div>
@@ -177,6 +228,10 @@ export default function StudentTestPage({ params }: { params: { id: string } }) 
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -20 }}
               className="max-w-2xl w-full"
+              onCopy={(e) => { e.preventDefault(); alert("Copying is disabled during the test."); }}
+              onPaste={(e) => { e.preventDefault(); alert("Pasting is disabled during the test."); }}
+              onContextMenu={(e) => e.preventDefault()}
+              style={{ userSelect: "none" }}
             >
               <div className="bg-white p-8 md:p-10 rounded-[2rem] shadow-xl border border-gray-100">
                 <h2 className="text-2xl md:text-3xl font-bold mb-8 leading-snug">
@@ -205,7 +260,14 @@ export default function StudentTestPage({ params }: { params: { id: string } }) 
                   })}
                 </div>
 
-                <div className="mt-10 flex justify-end">
+                <div className="mt-10 flex justify-between items-center">
+                  <button 
+                    onClick={handlePrevious}
+                    disabled={currentQuestionIndex === 0 || isSubmitting}
+                    className="px-6 py-3 rounded-xl font-bold text-gray-500 hover:bg-gray-100 disabled:opacity-30 transition-colors"
+                  >
+                    Previous
+                  </button>
                   <button 
                     onClick={handleNext}
                     disabled={!answers[questions[currentQuestionIndex].id] || isSubmitting}
