@@ -54,24 +54,42 @@ export default function TestDetailDashboard({ params }: { params: { id: string }
     ? (submissions.reduce((acc, curr) => acc + (curr.score / curr.total_questions), 0) / submissions.length) * 100
     : 0;
 
-  // Prepare chart data (Score distribution)
+  // Prepare chart data (Grade distribution)
   const scoreDistribution = submissions.reduce((acc: any, curr) => {
     const percent = Math.round((curr.score / curr.total_questions) * 100);
-    let range = "0-20%";
-    if (percent > 20 && percent <= 40) range = "21-40%";
-    else if (percent > 40 && percent <= 60) range = "41-60%";
-    else if (percent > 60 && percent <= 80) range = "61-80%";
-    else if (percent > 80) range = "81-100%";
+    let grade = "F";
+    if (percent >= 90) grade = "A";
+    else if (percent >= 80) grade = "B";
+    else if (percent >= 70) grade = "C";
+    else if (percent >= 60) grade = "D";
     
-    if (!acc[range]) acc[range] = 0;
-    acc[range]++;
+    acc[grade]++;
     return acc;
-  }, { "0-20%": 0, "21-40%": 0, "41-60%": 0, "61-80%": 0, "81-100%": 0 });
+  }, { "A": 0, "B": 0, "C": 0, "D": 0, "F": 0 });
 
-  const chartData = Object.keys(scoreDistribution).map(key => ({
+  const chartData = ["A", "B", "C", "D", "F"].map(key => ({
     name: key,
     students: scoreDistribution[key]
   }));
+
+  // Find hardest question
+  const questionStats = questions.map(q => {
+    let incorrectCount = 0;
+    submissions.forEach(sub => {
+      const studentAnswer = sub.answers && sub.answers[q.id];
+      if (studentAnswer !== q.correct_answer) {
+        incorrectCount++;
+      }
+    });
+    return {
+      id: q.id,
+      text: q.question_text,
+      incorrectCount,
+      failRate: submissions.length > 0 ? (incorrectCount / submissions.length) * 100 : 0
+    };
+  });
+
+  const hardestQuestion = questionStats.sort((a, b) => b.incorrectCount - a.incorrectCount)[0];
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
@@ -131,6 +149,22 @@ export default function TestDetailDashboard({ params }: { params: { id: string }
             <div className="relative z-10">
               <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Average Score</p>
               <p className="text-3xl font-black text-white">{averageScore.toFixed(1)}%</p>
+            </div>
+          </div>
+
+          <div className="bg-[#111] p-6 rounded-[2rem] border border-white/5 shadow-lg flex items-center gap-5 relative overflow-hidden group">
+            <div className="absolute inset-0 bg-gradient-to-r from-young-purple/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+            <div className="w-14 h-14 bg-young-purple/10 text-young-purple rounded-2xl flex items-center justify-center border border-young-purple/20 shadow-[0_0_15px_rgba(99,102,241,0.2)]">
+              <CheckCircle2 size={28} />
+            </div>
+            <div className="relative z-10">
+              <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Hardest Question</p>
+              <p className="text-lg font-black text-white truncate max-w-[150px]">
+                {hardestQuestion ? hardestQuestion.text : "N/A"}
+              </p>
+              <p className="text-xs text-red-400 font-medium">
+                {hardestQuestion ? `${hardestQuestion.failRate.toFixed(0)}% Failed` : ""}
+              </p>
             </div>
           </div>
         </div>
