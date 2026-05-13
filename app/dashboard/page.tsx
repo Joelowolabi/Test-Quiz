@@ -336,9 +336,12 @@ export default function DashboardPage() {
                   onChange={(e) => setDifficulty(e.target.value)}
                   className="w-full px-4 py-3 bg-white/5 text-white border border-white/10 rounded-xl focus:border-young-purple focus:ring-2 focus:ring-young-purple/20 outline-none transition-all font-medium"
                 >
+                  <option value="Very Easy" className="bg-[#1a1a1a]">Very Easy</option>
                   <option value="Easy" className="bg-[#1a1a1a]">Easy</option>
                   <option value="Medium" className="bg-[#1a1a1a]">Medium</option>
                   <option value="Hard" className="bg-[#1a1a1a]">Hard</option>
+                  <option value="Expert" className="bg-[#1a1a1a]">Expert</option>
+                  <option value="Master (Insane)" className="bg-[#1a1a1a]">Master (Insane)</option>
                 </select>
               </div>
               
