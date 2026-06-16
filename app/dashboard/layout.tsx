@@ -16,13 +16,19 @@ export default function DashboardLayout({
 
   useEffect(() => {
     const checkUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
+      try {
+        const { data: { user }, error } = await supabase.auth.getUser();
+        if (error || !user) {
+          router.push("/login");
+        } else {
+          setIsAuthenticated(true);
+        }
+      } catch (err) {
+        console.error("Auth verification failed:", err);
         router.push("/login");
-      } else {
-        setIsAuthenticated(true);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     };
     checkUser();
   }, [router]);
