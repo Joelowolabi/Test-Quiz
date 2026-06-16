@@ -15,26 +15,17 @@ export default function DashboardLayout({
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const checkUser = async () => {
-      try {
-        const { data: { user }, error } = await supabase.auth.getUser();
-        if (error || !user) {
-          router.push("/login");
-        } else {
-          setIsAuthenticated(true);
-        }
-      } catch (err) {
-        console.error("Auth verification failed:", err);
-        router.push("/login");
-      } finally {
-        setLoading(false);
-      }
-    };
-    checkUser();
+    const auth = sessionStorage.getItem("teacher_auth");
+    if (auth !== "true") {
+      router.push("/login");
+    } else {
+      setIsAuthenticated(true);
+    }
+    setLoading(false);
   }, [router]);
 
-  const handleSignOut = async () => {
-    await supabase.auth.signOut();
+  const handleSignOut = () => {
+    sessionStorage.removeItem("teacher_auth");
     router.push("/login");
   };
 

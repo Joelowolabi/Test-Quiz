@@ -34,14 +34,16 @@ export default function DashboardPage() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    const checkUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
+    const checkUser = () => {
+      const auth = sessionStorage.getItem("teacher_auth");
+      if (auth !== "true") {
         router.push("/login");
       } else {
-        setUser(user);
-        fetchTests(user.id);
-        fetchFolders(user.id);
+        // Use a static UUID for the teacher user to store/fetch tests and folders in Supabase
+        const mockUser = { id: "00000000-0000-0000-0000-000000000000", email: "teacher@example.com" };
+        setUser(mockUser);
+        fetchTests(mockUser.id);
+        fetchFolders(mockUser.id);
       }
     };
     checkUser();
