@@ -1,7 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { motion } from "framer-motion";
 import { Sparkles, ArrowRight, Loader2 } from "lucide-react";
 
@@ -12,17 +14,42 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const router = useRouter();
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError("");
 
-    // Simple password login bypass to keep database history under single static role
-    if (password === "admin123") {
-      sessionStorage.setItem("teacher_auth", "true");
-      router.push("/dashboard");
-    } else {
-      setError("Incorrect password");
+    try {
+      // 1. Attempt login with the provided credentials
+      const { data, error: loginError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (loginError) {
+        // 2. If password is the master "admin123", attempt to automatically register the user
+        if (password === "admin123") {
+          const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+            email,
+            password,
+          });
+
+          if (signUpError) {
+            throw signUpError;
+          }
+
+          // If signup is successful, proceed to set local states and redirect
+          sessionStorage.setItem("teacher_auth", "true");
+          router.push("/dashboard");
+        } else {
+          throw loginError;
+        }
+      } else {
+        sessionStorage.setItem("teacher_auth", "true");
+        router.push("/dashboard");
+      }
+    } catch (err: any) {
+      setError(err.message || "Invalid login credentials.");
       setLoading(false);
     }
   };
@@ -60,7 +87,10 @@ export default function LoginPage() {
               />
             </div>
             <div>
-              <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Password</label>
+              <div className="flex justify-between items-center mb-2">
+                <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider">Password</label>
+                <Link href="/forgot-password" className="text-xs font-bold text-young-purple hover:underline">Forgot password?</Link>
+              </div>
               <input 
                 type="password" required
                 value={password}
@@ -84,6 +114,10 @@ export default function LoginPage() {
               {loading ? <><Loader2 size={20} className="animate-spin" /> Logging in...</> : <>{'Log In'} <ArrowRight size={20} /></>}
             </button>
           </form>
+
+          <p className="mt-6 text-center text-gray-500 text-sm font-medium">
+            Don't have an account? <Link href="/signup" className="text-young-purple hover:underline">Sign up</Link>
+          </p>
         </motion.div>
       </main>
     </div>

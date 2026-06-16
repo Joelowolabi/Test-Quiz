@@ -34,16 +34,26 @@ export default function DashboardPage() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    const checkUser = () => {
-      const auth = sessionStorage.getItem("teacher_auth");
-      if (auth !== "true") {
-        router.push("/login");
-      } else {
-        // Use a static UUID for the teacher user to store/fetch tests and folders in Supabase
-        const mockUser = { id: "00000000-0000-0000-0000-000000000000", email: "teacher@example.com" };
-        setUser(mockUser);
-        fetchTests(mockUser.id);
-        fetchFolders(mockUser.id);
+    const checkUser = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) {
+          setUser(session.user);
+          fetchTests(session.user.id);
+          fetchFolders(session.user.id);
+        } else {
+          const auth = sessionStorage.getItem("teacher_auth");
+          if (auth !== "true") {
+            router.push("/login");
+          } else {
+            const mockUser = { id: "00000000-0000-0000-0000-000000000000", email: "teacher@example.com" };
+            setUser(mockUser);
+            fetchTests(mockUser.id);
+            fetchFolders(mockUser.id);
+          }
+        }
+      } catch (err) {
+        console.error("Error retrieving user session:", err);
       }
     };
     checkUser();

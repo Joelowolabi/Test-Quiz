@@ -15,16 +15,48 @@ export default function DashboardLayout({
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const auth = sessionStorage.getItem("teacher_auth");
-    if (auth !== "true") {
-      router.push("/login");
-    } else {
-      setIsAuthenticated(true);
-    }
-    setLoading(false);
+    const checkAuth = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) {
+          setIsAuthenticated(true);
+        } else {
+          const auth = sessionStorage.getItem("teacher_auth");
+          if (auth !== "true") {
+            router.push("/login");
+            return;
+          }
+          setIsAuthenticated(true);
+        }
+      } catch (err) {
+        console.error("Session check error", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    checkAuth();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (session) {
+        setIsAuthenticated(true);
+      } else if (sessionStorage.getItem("teacher_auth") !== "true") {
+        setIsAuthenticated(false);
+        router.push("/login");
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, [router]);
 
-  const handleSignOut = () => {
+  const handleSignOut = async () => {
+    try {
+      await supabase.auth.signOut();
+    } catch (err) {
+      console.error("Sign out error", err);
+    }
     sessionStorage.removeItem("teacher_auth");
     router.push("/login");
   };
