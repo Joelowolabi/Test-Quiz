@@ -96,13 +96,25 @@ export async function POST(req: Request) {
       contents.push(filePart);
     }
 
-    const response = await ai.models.generateContent({
-      model: 'gemini-3.8-flash',
-      contents: contents,
-      config: {
-        responseMimeType: 'application/json',
-      },
-    });
+    let response;
+    try {
+      response = await ai.models.generateContent({
+        model: 'gemini-3.8-flash',
+        contents: contents,
+        config: {
+          responseMimeType: 'application/json',
+        },
+      });
+    } catch (primaryErr: any) {
+      console.warn("Primary model (gemini-3.8-flash) unavailable or busy, falling back to gemini-2.5-flash:", primaryErr?.message || primaryErr);
+      response = await ai.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: contents,
+        config: {
+          responseMimeType: 'application/json',
+        },
+      });
+    }
 
     const outputText = response.text || "";
     
