@@ -80,20 +80,13 @@ export default function DashboardPage() {
     checkUser();
   }, []);
 
-  const fetchTests = async (userId: string) => {
+  const fetchTests = async (userId?: string) => {
     try {
       setLoading(true);
-      let query = supabase
+      const { data, error } = await supabase
         .from('tests')
         .select('*, submissions(count)')
-        .eq('user_id', userId)
-        .eq('status', selectedStatus);
-        
-      if (selectedFolder) {
-        query = query.eq('folder_id', selectedFolder);
-      }
-        
-      const { data, error } = await query.order('created_at', { ascending: false });
+        .order('created_at', { ascending: false });
         
       if (error) throw error;
       setTests(data || []);
@@ -200,10 +193,7 @@ export default function DashboardPage() {
         .insert([{ 
           title, 
           source_content: sourceType === 'text' ? sourceContent : sourceType === 'url' ? `URL(s): ${sourceContent}` : sourceType === 'file' ? 'Uploaded File' : 'Manually Created',
-          time_limit: timeLimit,
-          user_id: user.id,
-          folder_id: targetFolder,
-          status: targetStatus
+          time_limit: timeLimit
         }])
         .select()
         .single();
