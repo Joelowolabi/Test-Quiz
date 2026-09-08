@@ -480,12 +480,15 @@ export default function DashboardPage() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Total Qs (Max 100)</label>
+                  <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Total Qs (Max 30)</label>
                   <input 
                     type="number" 
-                    min="1" max="100"
+                    min="1" max="30"
                     value={questionCount}
-                    onChange={(e) => setQuestionCount(parseInt(e.target.value))}
+                    onChange={(e) => {
+                      const val = parseInt(e.target.value) || 1;
+                      setQuestionCount(Math.min(Math.max(val, 1), 30));
+                    }}
                     className="w-full px-4 py-3 bg-white/5 text-white border border-white/10 rounded-xl focus:border-young-purple focus:ring-2 focus:ring-young-purple/20 outline-none transition-all font-medium"
                   />
                 </div>
@@ -496,18 +499,23 @@ export default function DashboardPage() {
                     onChange={(e) => setTimeLimit(parseInt(e.target.value))}
                     className="w-full px-4 py-3 bg-white/5 text-white border border-white/10 rounded-xl focus:border-young-purple focus:ring-2 focus:ring-young-purple/20 outline-none transition-all font-medium"
                   >
-                    <option value={0} className="bg-[#1a1a1a]">No Time Limit</option>
+                    <option value={0} className="bg-[#1a1a1a]">No Limit</option>
+                    <option value={5} className="bg-[#1a1a1a]">5 Minutes</option>
+                    <option value={10} className="bg-[#1a1a1a]">10 Minutes</option>
                     <option value={15} className="bg-[#1a1a1a]">15 Minutes</option>
                     <option value={30} className="bg-[#1a1a1a]">30 Minutes</option>
                     <option value={45} className="bg-[#1a1a1a]">45 Minutes</option>
                     <option value={60} className="bg-[#1a1a1a]">60 Minutes</option>
-                    <option value={90} className="bg-[#1a1a1a]">90 Minutes</option>
                   </select>
                 </div>
               </div>
             </div>
 
-            {error && <p className="text-red-400 text-sm font-medium bg-red-400/10 py-2 px-3 rounded-lg border border-red-400/20">{error}</p>}
+            {error && (
+              <div className="text-red-400 text-xs font-bold bg-red-400/10 p-3 rounded-xl border border-red-400/20">
+                {error}
+              </div>
+            )}
 
             <button 
               type="submit" 
@@ -515,7 +523,7 @@ export default function DashboardPage() {
               className="w-full py-4 mt-2 bg-gradient-to-r from-young-purple to-[#818cf8] text-white rounded-xl font-bold flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(99,102,241,0.4)] hover:shadow-[0_0_30px_rgba(99,102,241,0.6)] hover:scale-[1.02] transition-all disabled:opacity-70 disabled:hover:scale-100"
             >
               {isGenerating ? (
-                <><Loader2 size={20} className="animate-spin" /> Generating AI Quiz...</>
+                <><Loader2 size={20} className="animate-spin" /> Generating {questionCount} Questions...</>
               ) : (
                 <><Sparkles size={20} /> {sourceType === 'manual' ? 'Create Test' : 'Generate Test'}</>
               )}
