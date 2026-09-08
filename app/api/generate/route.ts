@@ -18,8 +18,9 @@ export async function POST(req: Request) {
     }
 
     let sourceContent = text;
+    const isUrl = type === 'url' || (type === 'text' && (text.trim().startsWith('http://') || text.trim().startsWith('https://')));
 
-    if (type === 'url') {
+    if (isUrl) {
       try {
         const rawUrls = text.split('\n')
           .map((u: string) => u.trim())
@@ -166,18 +167,8 @@ export async function POST(req: Request) {
 
   } catch (error: any) {
     console.error('Generation Error:', error);
-    // Programmatic fallback to ensure it works even if Gemini API key is missing, invalid, or fails
-    const fallbackCount = Math.min(Math.max(Number(count) || 5, 1), 30);
-    const mockQuestions = Array.from({ length: fallbackCount }).map((_, i) => ({
-      question: `Question ${i + 1}: Based on your provided text, what is the key takeaway for concept #${i + 1}?`,
-      options: [
-        `Option A (Correct takeaway for concept #${i + 1})`,
-        `Option B (Common misconception)`,
-        `Option C (Opposite interpretation)`,
-        `Option D (None of the above)`
-      ],
-      correctAnswer: `Option A (Correct takeaway for concept #${i + 1})`
-    }));
-    return NextResponse.json({ questions: mockQuestions });
+    return NextResponse.json({ 
+      error: error?.message || 'Failed to generate questions with AI. Please try again.' 
+    }, { status: 500 });
   }
 }
