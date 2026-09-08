@@ -3,8 +3,9 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import Link from "next/link";
-import { FileText, Link as LinkIcon, Plus, Loader2, ArrowRight, Sparkles } from "lucide-react";
+import { FileText, Link as LinkIcon, Plus, Loader2, ArrowRight, Sparkles, Search, Trash2, Copy, CheckCircle2, KeyRound } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { uuidToPin, formatPin } from "@/lib/pin";
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -18,6 +19,26 @@ export default function DashboardPage() {
   const [isCreatingFolder, setIsCreatingFolder] = useState(false);
   const [targetFolder, setTargetFolder] = useState<string | null>(null);
   const [targetStatus, setTargetStatus] = useState<string>("published");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [copiedPinId, setCopiedPinId] = useState<string | null>(null);
+
+  const handleDeleteTest = async (testId: string) => {
+    if (!confirm("Are you sure you want to delete this quiz? This will remove all submissions associated with it.")) return;
+    try {
+      const { error } = await supabase.from('tests').delete().eq('id', testId);
+      if (error) throw error;
+      setTests(prev => prev.filter(t => t.id !== testId));
+    } catch (err: any) {
+      alert(err.message || "Failed to delete test.");
+    }
+  };
+
+  const copyTestPin = (testId: string) => {
+    const pin = uuidToPin(testId);
+    navigator.clipboard.writeText(pin);
+    setCopiedPinId(testId);
+    setTimeout(() => setCopiedPinId(null), 2000);
+  };
   
   // Generation State
   const [sourceType, setSourceType] = useState<"text" | "url" | "file" | "manual">("text");
@@ -514,45 +535,59 @@ export default function DashboardPage() {
 
         {/* Existing Tests List */}
         <div className="md:col-span-2">
-          {/* Folders & Status Filters */}
+          {/* Folders, Status Filters & Search Bar */}
           <div className="mb-6 space-y-4">
-            {/* Status Tabs */}
-            <div className="flex gap-2 border-b border-white/5 pb-4">
-              {['published', 'draft', 'archived'].map((status) => (
-                <button
-                  key={status}
-                  onClick={() => setSelectedStatus(status)}
-                  className={`px-4 py-2 rounded-lg font-bold text-sm uppercase tracking-wider transition-all ${
-                    selectedStatus === status 
-                      ? 'bg-young-purple text-white' 
-                      : 'bg-white/5 text-gray-500 hover:bg-white/10 hover:text-white'
-                  }`}
-                >
-                  {status}
-                </button>
-              ))}
+            {/* Status Tabs and Search Input */}
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-white/5 pb-4">
+              <div className="flex gap-2">
+                {['published', 'draft', 'archived'].map((status) => (
+                  <button
+                    key={status}
+                    onClick={() => setSelectedStatus(status)}
+                    className={`px-3.5 py-1.5 rounded-lg font-bold text-xs uppercase tracking-wider transition-all ${
+                      selectedStatus === status 
+                        ? 'bg-young-purple text-white shadow-sm' 
+                        : 'bg-white/5 text-gray-400 hover:bg-white/10 hover:text-white'
+                    }`}
+                  >
+                    {status}
+                  </button>
+                ))}
+              </div>
+
+              {/* Search Bar */}
+              <div className="relative w-full sm:w-64">
+                <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search quizzes..."
+                  className="w-full pl-9 pr-3 py-1.5 bg-white/5 border border-white/10 rounded-xl text-xs text-white focus:border-young-purple outline-none placeholder:text-gray-600"
+                />
+              </div>
             </div>
 
             {/* Folders List */}
             <div className="flex gap-2 overflow-x-auto pb-2">
               <button
                 onClick={() => setSelectedFolder(null)}
-                className={`px-4 py-2 rounded-full font-medium text-sm whitespace-nowrap transition-all ${
+                className={`px-4 py-1.5 rounded-full font-medium text-xs whitespace-nowrap transition-all ${
                   selectedFolder === null 
-                    ? 'bg-white/10 text-white' 
-                    : 'bg-white/5 text-gray-500 hover:bg-white/10'
+                    ? 'bg-white/15 text-white font-bold' 
+                    : 'bg-white/5 text-gray-400 hover:bg-white/10'
                 }`}
               >
-                All Tests
+                All Quizzes
               </button>
               {folders.map((folder) => (
                 <button
                   key={folder.id}
                   onClick={() => setSelectedFolder(folder.id)}
-                  className={`px-4 py-2 rounded-full font-medium text-sm whitespace-nowrap transition-all ${
+                  className={`px-4 py-1.5 rounded-full font-medium text-xs whitespace-nowrap transition-all ${
                     selectedFolder === folder.id 
-                      ? 'bg-white/10 text-white' 
-                      : 'bg-white/5 text-gray-500 hover:bg-white/10'
+                      ? 'bg-white/15 text-white font-bold' 
+                      : 'bg-white/5 text-gray-400 hover:bg-white/10'
                   }`}
                 >
                   📁 {folder.name}
@@ -561,23 +596,23 @@ export default function DashboardPage() {
               
               {/* Create Folder Button */}
               {isCreatingFolder ? (
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1.5">
                   <input
                     type="text"
                     value={newFolderName}
                     onChange={(e) => setNewFolderName(e.target.value)}
-                    className="px-3 py-1.5 bg-white/5 text-white border border-white/10 rounded-lg text-sm focus:border-young-purple outline-none"
+                    className="px-2.5 py-1 bg-white/5 text-white border border-white/10 rounded-lg text-xs focus:border-young-purple outline-none"
                     placeholder="Folder name..."
                   />
                   <button
                     onClick={handleCreateFolder}
-                    className="p-1.5 bg-young-purple text-white rounded-lg hover:bg-young-purple/80"
+                    className="p-1 bg-young-purple text-white rounded-lg hover:bg-young-purple/80"
                   >
-                    <Plus size={16} />
+                    <Plus size={14} />
                   </button>
                   <button
                     onClick={() => setIsCreatingFolder(false)}
-                    className="p-1.5 bg-white/5 text-gray-500 rounded-lg hover:bg-white/10"
+                    className="p-1 bg-white/5 text-gray-400 rounded-lg hover:bg-white/10"
                   >
                     ✕
                   </button>
@@ -585,13 +620,14 @@ export default function DashboardPage() {
               ) : (
                 <button
                   onClick={() => setIsCreatingFolder(true)}
-                  className="px-4 py-2 rounded-full font-medium text-sm whitespace-nowrap bg-white/5 text-young-purple hover:bg-white/10 flex items-center gap-1"
+                  className="px-3 py-1.5 rounded-full font-medium text-xs whitespace-nowrap bg-white/5 text-young-purple hover:bg-white/10 flex items-center gap-1"
                 >
-                  <Plus size={14} /> New Folder
+                  <Plus size={12} /> New Folder
                 </button>
               )}
             </div>
           </div>
+
           {loading ? (
             <div className="flex justify-center py-20"><Loader2 className="animate-spin text-young-purple" size={40} /></div>
           ) : tests.length === 0 ? (
@@ -599,41 +635,72 @@ export default function DashboardPage() {
               <div className="w-16 h-16 bg-[#222] rounded-full flex items-center justify-center mx-auto mb-4 text-gray-500 border border-white/10 shadow-inner">
                 <FileText size={32} />
               </div>
-              <h3 className="text-xl font-bold text-white mb-1">No tests yet</h3>
-              <p className="text-gray-500 font-medium">Generate your first AI quiz to get started.</p>
+              <h3 className="text-xl font-bold text-white mb-1">No quizzes yet</h3>
+              <p className="text-gray-500 font-medium text-sm">Generate your first AI quiz on the left to get started.</p>
             </div>
           ) : (
             <div className="grid sm:grid-cols-2 gap-4">
-              {tests.map((test) => (
-                <div key={test.id} className="bg-[#111] p-6 rounded-3xl border border-white/5 hover:border-young-purple/30 hover:shadow-[0_0_30px_rgba(99,102,241,0.15)] hover:-translate-y-1 transition-all group flex flex-col relative overflow-hidden">
-                  <div className="absolute top-0 right-0 w-24 h-24 bg-young-purple/5 rounded-full blur-[30px] group-hover:bg-young-purple/10 transition-colors"></div>
-                  
-                  <h3 className="font-bold text-lg text-white mb-1 line-clamp-1">{test.title}</h3>
-                  <div className="flex items-center gap-2 mb-4">
-                    <p className="text-xs text-gray-500 font-medium">
-                      {new Date(test.created_at).toLocaleDateString()}
-                    </p>
-                    {test.time_limit > 0 && (
-                      <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-white/5 text-gray-400 border border-white/10">
-                        {test.time_limit} Mins
-                      </span>
-                    )}
-                  </div>
-                  
-                  <div className="mt-auto flex items-center justify-between z-10">
-                    <span className="text-sm font-bold text-young-orange bg-young-orange/10 border border-young-orange/20 px-3 py-1 rounded-lg">
-                      {test.submissions?.[0]?.count || 0} Submissions
-                    </span>
-                    
-                    <Link 
-                      href={`/dashboard/test/${test.id}`}
-                      className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-gray-300 group-hover:bg-young-purple group-hover:text-white transition-all shadow-sm"
-                    >
-                      <ArrowRight size={20} />
-                    </Link>
-                  </div>
-                </div>
-              ))}
+              {tests
+                .filter(t => t.title.toLowerCase().includes(searchQuery.toLowerCase()))
+                .map((test) => {
+                  const testPin = uuidToPin(test.id);
+                  const isCopied = copiedPinId === test.id;
+
+                  return (
+                    <div key={test.id} className="bg-[#111] p-6 rounded-3xl border border-white/5 hover:border-young-purple/30 hover:shadow-[0_0_30px_rgba(99,102,241,0.15)] hover:-translate-y-1 transition-all group flex flex-col relative overflow-hidden">
+                      <div className="absolute top-0 right-0 w-24 h-24 bg-young-purple/5 rounded-full blur-[30px] group-hover:bg-young-purple/10 transition-colors pointer-events-none"></div>
+                      
+                      <div className="flex justify-between items-start gap-2 mb-2">
+                        <h3 className="font-bold text-base text-white line-clamp-1 group-hover:text-young-purple transition-colors">{test.title}</h3>
+                        <button
+                          onClick={() => handleDeleteTest(test.id)}
+                          className="opacity-0 group-hover:opacity-100 p-1.5 text-gray-500 hover:text-red-400 hover:bg-red-400/10 rounded-lg transition-all"
+                          title="Delete quiz"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-2 mb-4">
+                        <p className="text-[11px] text-gray-500 font-medium">
+                          {new Date(test.created_at).toLocaleDateString()}
+                        </p>
+                        {test.time_limit > 0 && (
+                          <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-white/5 text-gray-400 border border-white/10">
+                            {test.time_limit} Mins
+                          </span>
+                        )}
+
+                        {/* Quick PIN Badge with Copy Button */}
+                        <button
+                          onClick={() => copyTestPin(test.id)}
+                          className={`text-[11px] font-mono font-bold px-2.5 py-0.5 rounded-lg border flex items-center gap-1 transition-all ${
+                            isCopied 
+                              ? 'bg-young-green/20 text-young-green border-young-green/30' 
+                              : 'bg-black/50 text-young-green border-young-green/20 hover:border-young-green/50'
+                          }`}
+                          title="Click to copy 6-digit PIN"
+                        >
+                          <KeyRound size={10} /> PIN: {formatPin(testPin)}
+                          {isCopied ? <CheckCircle2 size={10} /> : <Copy size={10} />}
+                        </button>
+                      </div>
+                      
+                      <div className="mt-auto pt-3 border-t border-white/5 flex items-center justify-between z-10">
+                        <span className="text-xs font-bold text-young-orange bg-young-orange/10 border border-young-orange/20 px-2.5 py-1 rounded-lg">
+                          {test.submissions?.[0]?.count || 0} Submissions
+                        </span>
+                        
+                        <Link 
+                          href={`/dashboard/test/${test.id}`}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/5 hover:bg-young-purple text-xs font-bold text-gray-300 hover:text-white transition-all shadow-sm"
+                        >
+                          Analytics <ArrowRight size={14} />
+                        </Link>
+                      </div>
+                    </div>
+                  );
+                })}
             </div>
           )}
         </div>
