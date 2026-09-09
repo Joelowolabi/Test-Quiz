@@ -88,8 +88,8 @@ export async function POST(req: Request) {
 
     const diffLevel = difficulty || "Medium";
     const qType = questionType || "Multiple Choice";
-    // Cap question count to a safe maximum of 30 per generation request to prevent timeout
-    const safeCount = Math.min(Math.max(Number(count) || 5, 1), 30);
+    // Cap question count to a safe maximum of 80 per generation request
+    const safeCount = Math.min(Math.max(Number(count) || 5, 1), 80);
     
     let typeInstructions = "multiple-choice questions";
     if (qType === "True/False") {
@@ -104,66 +104,64 @@ export async function POST(req: Request) {
       typeInstructions = "definition-matching multiple-choice questions (ask to match a term to its definition or vice versa)";
     }
 
-    const prompt = `
-      You are an expert educator. Create ${safeCount} ${typeInstructions} based on the following text or attached file.
-      The difficulty level of the questions should be: ${diffLevel}.
-      
-      Return the output strictly as a JSON array of objects. Do not use markdown blocks (\`\`\`json). Just the raw JSON array.
-      
-      Each object must have exactly this structure:
-      {
-        "question": "The question text",
-        "options": ["Option 1", "Option 2", "Option 3", "Option 4"],
-        "correctAnswer": "Option 1"
+    const generateBatch = async (batchCount: number, focusGuide: string) => {
+      const prompt = `
+        You are an expert educator. Create ${batchCount} ${typeInstructions} based on the following text or attached file.
+        The difficulty level of the questions should be: ${diffLevel}.
+        ${focusGuide}
+        
+        Return the output strictly as a JSON array of objects. Do not use markdown blocks (\`\`\`json). Just the raw JSON array.
+        
+        Each object must have exactly this structure:
+        {
+          "question": "The question text",
+          "options": ["Option 1", "Option 2", "Option 3", "Option 4"],
+          "correctAnswer": "Option 1"
+        }
+        
+        Make sure the options are plausible and the correct answer exactly matches one of the options.
+        If the question is True/False, the options array must contain only two items: ["True", "False"].
+
+        Source Text:
+        ${sourceContent}
+      `;
+
+      const contents: any[] = [prompt];
+      if (filePart) {
+        contents.push(filePart);
       }
-      
-      Make sure the options are plausible and the correct answer exactly matches one of the options.
-      If the question is True/False, the options array must contain only two items: ["True", "False"].
 
-      Source Text:
-      ${sourceContent}
-    `;
-
-    const contents: any[] = [prompt];
-    if (filePart) {
-      contents.push(filePart);
-    }
-
-    let response;
-    try {
-      response = await ai.models.generateContent({
-        model: 'gemini-3.8-flash',
-        contents: contents,
-        config: {
-          responseMimeType: 'application/json',
-        },
-      });
-    } catch (primaryErr: any) {
-      console.warn("Primary model (gemini-3.8-flash) unavailable, falling back to gemini-2.5-flash:", primaryErr?.message || primaryErr);
-      response = await ai.models.generateContent({
+      const response = await ai.models.generateContent({
         model: 'gemini-2.5-flash',
         contents: contents,
         config: {
           responseMimeType: 'application/json',
         },
       });
+
+      const outputText = response.text || "";
+      let cleanJson = outputText.trim();
+      if (cleanJson.startsWith('```json')) cleanJson = cleanJson.replace(/```json/g, '');
+      if (cleanJson.startsWith('```')) cleanJson = cleanJson.replace(/```/g, '');
+      cleanJson = cleanJson.trim();
+
+      return JSON.parse(cleanJson);
+    };
+
+    let questions: any[] = [];
+    if (safeCount <= 40) {
+      questions = await generateBatch(safeCount, "Cover the entire material evenly.");
+    } else {
+      const b1Count = Math.ceil(safeCount / 2);
+      const b2Count = Math.floor(safeCount / 2);
+      const [b1, b2] = await Promise.all([
+        generateBatch(b1Count, "Focus primarily on key foundational concepts, definitions, and early sections."),
+        generateBatch(b2Count, "Focus primarily on advanced applications, processes, implications, and concluding sections.")
+      ]);
+      questions = [...(Array.isArray(b1) ? b1 : []), ...(Array.isArray(b2) ? b2 : [])];
     }
 
-    const outputText = response.text || "";
-    
-    // Clean up potential markdown formatting if the model disobeys
-    let cleanJson = outputText.trim();
-    if (cleanJson.startsWith('```json')) cleanJson = cleanJson.replace(/```json/g, '');
-    if (cleanJson.startsWith('```')) cleanJson = cleanJson.replace(/```/g, '');
-    cleanJson = cleanJson.trim();
-
-    try {
-      const questions = JSON.parse(cleanJson);
-      return NextResponse.json({ questions });
-    } catch (parseError) {
-      console.error("Failed to parse Gemini output:", outputText);
-      return NextResponse.json({ error: 'Failed to parse AI response. Please try again.' }, { status: 500 });
-    }
+    return NextResponse.json({ questions });
 
   } catch (error: any) {
     console.error('Generation Error:', error);

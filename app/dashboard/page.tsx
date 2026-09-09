@@ -480,14 +480,14 @@ export default function DashboardPage() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Total Qs (Max 30)</label>
+                  <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Total Qs (Max 80)</label>
                   <input 
                     type="number" 
-                    min="1" max="30"
+                    min="1" max="80"
                     value={questionCount}
                     onChange={(e) => {
                       const val = parseInt(e.target.value) || 1;
-                      setQuestionCount(Math.min(Math.max(val, 1), 30));
+                      setQuestionCount(Math.min(Math.max(val, 1), 80));
                     }}
                     className="w-full px-4 py-3 bg-white/5 text-white border border-white/10 rounded-xl focus:border-young-purple focus:ring-2 focus:ring-young-purple/20 outline-none transition-all font-medium"
                   />
