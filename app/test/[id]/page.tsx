@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
-import { ArrowRight, ArrowLeft, CheckCircle2, Circle, Sparkles, Clock, Trophy, Star, ShieldAlert, KeyRound } from "lucide-react";
+import { ArrowRight, ArrowLeft, CheckCircle2, Circle, Sparkles, Clock, Trophy, Star, ShieldAlert, KeyRound, Send, AlertCircle } from "lucide-react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import confetti from "canvas-confetti";
@@ -20,6 +20,7 @@ export default function StudentTestPage({ params }: { params: { id: string } }) 
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [flagged, setFlagged] = useState<Record<string, boolean>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isCheckingSubmission, setIsCheckingSubmission] = useState(false);
   const [score, setScore] = useState(0);
   const [leaderboard, setLeaderboard] = useState<any[]>([]);
   const [timeLeft, setTimeLeft] = useState<number | null>(null);
@@ -27,10 +28,49 @@ export default function StudentTestPage({ params }: { params: { id: string } }) 
   const [resultRequested, setResultRequested] = useState(false);
   const [resultReleased, setResultReleased] = useState(true);
   const [submissionId, setSubmissionId] = useState<string | null>(null);
+  const [showForceSubmitModal, setShowForceSubmitModal] = useState(false);
+  const [sessionRestored, setSessionRestored] = useState(false);
 
   useEffect(() => {
     fetchTestData();
   }, [params.id]);
+
+  // Session auto-save: persist answers and progress so refresh/sleep never resets questions
+  useEffect(() => {
+    if (step === "test" && studentEmail) {
+      try {
+        const sessionPayload = {
+          studentName,
+          studentEmail: studentEmail.trim().toLowerCase(),
+          answers,
+          currentQuestionIndex,
+          flagged,
+          timeLeft,
+          cheatWarnings,
+          step: "test",
+          isCompleted: false,
+          questionOrder: questions.map(q => q.id),
+          updatedAt: Date.now()
+        };
+        localStorage.setItem(`quiz_session_${params.id}`, JSON.stringify(sessionPayload));
+      } catch (e) {
+        // Storage access error handling
+      }
+    }
+  }, [step, studentName, studentEmail, answers, currentQuestionIndex, flagged, timeLeft, cheatWarnings, questions, params.id]);
+
+  // Prevent accidental page reloads/tab close while taking test
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (step === "test" && !isSubmitting) {
+        e.preventDefault();
+        e.returnValue = "Assessment in progress. Your answers may be lost if you leave.";
+        return e.returnValue;
+      }
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [step, isSubmitting]);
 
   useEffect(() => {
     if (step === "test" && timeLeft === null && test?.time_limit > 0) {
@@ -87,9 +127,69 @@ export default function StudentTestPage({ params }: { params: { id: string } }) 
       ]);
 
       if (testRes.data) setTest(testRes.data);
-      if (qRes.data) {
-        const shuffled = [...qRes.data].sort(() => Math.random() - 0.5);
-        setQuestions(shuffled);
+
+      if (qRes.data && qRes.data.length > 0) {
+        let ordered = [...qRes.data];
+
+        // Check if there is a saved local session for this quiz
+        try {
+          const savedSessionRaw = localStorage.getItem(`quiz_session_${params.id}`);
+          if (savedSessionRaw) {
+            const saved = JSON.parse(savedSessionRaw);
+
+            // If user already finished this test on this device, restore results immediately
+            if (saved.isCompleted) {
+              setStudentName(saved.studentName || "");
+              setStudentEmail(saved.studentEmail || "");
+              setScore(saved.score || 0);
+              setSubmissionId(saved.submissionId || null);
+              setQuestions(ordered);
+              setStep("result");
+
+              // Load leaderboard
+              const { data: lb } = await supabase
+                .from('submissions')
+                .select('student_name, score')
+                .eq('test_id', params.id)
+                .order('score', { ascending: false })
+                .limit(5);
+              if (lb) setLeaderboard(lb);
+
+              setLoading(false);
+              return;
+            }
+
+            // Restore consistent question ordering so questions don't jump around
+            if (saved.questionOrder && Array.isArray(saved.questionOrder)) {
+              const map = new Map(qRes.data.map((q: any) => [q.id, q]));
+              const restoredOrder = saved.questionOrder.map((id: string) => map.get(id)).filter(Boolean);
+              if (restoredOrder.length === qRes.data.length) {
+                ordered = restoredOrder;
+              }
+            }
+
+            // Restore active quiz progress
+            if (saved.step === "test") {
+              setStudentName(saved.studentName || "");
+              setStudentEmail(saved.studentEmail || "");
+              setAnswers(saved.answers || {});
+              setCurrentQuestionIndex(saved.currentQuestionIndex || 0);
+              setFlagged(saved.flagged || {});
+              if (typeof saved.timeLeft === 'number') setTimeLeft(saved.timeLeft);
+              if (typeof saved.cheatWarnings === 'number') setCheatWarnings(saved.cheatWarnings);
+              setStep("test");
+              setSessionRestored(true);
+              setTimeout(() => setSessionRestored(false), 4000);
+            }
+          } else {
+            // First time load: deterministically shuffle
+            ordered.sort(() => Math.random() - 0.5);
+          }
+        } catch (storageErr) {
+          console.error("Storage parse error:", storageErr);
+        }
+
+        setQuestions(ordered);
       }
     } catch (err) {
       console.error(err);
@@ -98,11 +198,60 @@ export default function StudentTestPage({ params }: { params: { id: string } }) 
     }
   };
 
-  const handleStartTest = (e: React.FormEvent) => {
+  const handleStartTest = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (studentName.trim() && studentEmail.trim()) {
-      setStep("test");
+    const cleanName = studentName.trim();
+    const cleanEmail = studentEmail.trim().toLowerCase();
+
+    if (!cleanName || !cleanEmail) return;
+
+    setIsCheckingSubmission(true);
+    try {
+      // Duplicate submission guard: check if this student has already submitted this test
+      const { data: existingSub, error } = await supabase
+        .from('submissions')
+        .select('id, score, total_questions')
+        .eq('test_id', params.id)
+        .eq('student_email', cleanEmail)
+        .order('created_at', { ascending: false })
+        .limit(1);
+
+      if (existingSub && existingSub.length > 0) {
+        const sub = existingSub[0];
+        setScore(sub.score);
+        setSubmissionId(sub.id);
+        setStep("result");
+
+        try {
+          localStorage.setItem(`quiz_session_${params.id}`, JSON.stringify({
+            studentName: cleanName,
+            studentEmail: cleanEmail,
+            score: sub.score,
+            submissionId: sub.id,
+            isCompleted: true,
+            step: "result"
+          }));
+        } catch (e) {}
+
+        const { data: lb } = await supabase
+          .from('submissions')
+          .select('student_name, score')
+          .eq('test_id', params.id)
+          .order('score', { ascending: false })
+          .limit(5);
+        if (lb) setLeaderboard(lb);
+
+        alert(`You have already completed this test with a score of ${sub.score}/${sub.total_questions || questions.length}. Retakes are not permitted.`);
+        setIsCheckingSubmission(false);
+        return;
+      }
+    } catch (err) {
+      console.error("Error checking existing submissions:", err);
+    } finally {
+      setIsCheckingSubmission(false);
     }
+
+    setStep("test");
   };
 
   const handleSelectOption = (questionId: string, option: string) => {
@@ -117,7 +266,13 @@ export default function StudentTestPage({ params }: { params: { id: string } }) 
     if (currentQuestionIndex < questions.length - 1) {
       setCurrentQuestionIndex(prev => prev + 1);
     } else {
-      submitTest();
+      // Reached the final question: check if all questions are answered
+      const unanswered = questions.filter(q => !answers[q.id]).length;
+      if (unanswered > 0) {
+        setShowForceSubmitModal(true);
+      } else {
+        submitTest();
+      }
     }
   };
 
@@ -127,9 +282,17 @@ export default function StudentTestPage({ params }: { params: { id: string } }) 
     }
   };
 
+  const jumpToFirstUnanswered = () => {
+    const firstUnansweredIndex = questions.findIndex(q => !answers[q.id]);
+    if (firstUnansweredIndex !== -1) {
+      setCurrentQuestionIndex(firstUnansweredIndex);
+    }
+    setShowForceSubmitModal(false);
+  };
+
   // Keyboard Shortcuts (1-4, A-D, Enter, F)
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
-    if (step !== "test" || !questions[currentQuestionIndex]) return;
+    if (step !== "test" || !questions[currentQuestionIndex] || showForceSubmitModal) return;
 
     const currentQ = questions[currentQuestionIndex];
     const key = e.key.toUpperCase();
@@ -150,11 +313,9 @@ export default function StudentTestPage({ params }: { params: { id: string } }) 
     } else if (key === 'F') {
       toggleFlag(currentQ.id);
     } else if (e.key === 'Enter') {
-      if (answers[currentQ.id]) {
-        handleNext();
-      }
+      handleNext();
     }
-  }, [step, questions, currentQuestionIndex, answers]);
+  }, [step, questions, currentQuestionIndex, answers, showForceSubmitModal]);
 
   useEffect(() => {
     window.addEventListener("keydown", handleKeyDown);
@@ -163,6 +324,7 @@ export default function StudentTestPage({ params }: { params: { id: string } }) 
 
   const submitTest = async () => {
     setIsSubmitting(true);
+    setShowForceSubmitModal(false);
     try {
       let calculatedScore = 0;
       questions.forEach(q => {
@@ -181,10 +343,12 @@ export default function StudentTestPage({ params }: { params: { id: string } }) 
         }
       };
 
+      const cleanEmail = studentEmail.trim().toLowerCase();
+
       const { data } = await supabase.from('submissions').insert([{
         test_id: test.id,
         student_name: studentName,
-        student_email: studentEmail,
+        student_email: cleanEmail,
         score: calculatedScore,
         total_questions: questions.length,
         answers: submissionAnswers
@@ -193,6 +357,19 @@ export default function StudentTestPage({ params }: { params: { id: string } }) 
       .single();
 
       if (data) setSubmissionId(data.id);
+
+      // Save completed state to localStorage so retakes and refreshes permanently stay on result screen
+      try {
+        localStorage.setItem(`quiz_session_${params.id}`, JSON.stringify({
+          studentName,
+          studentEmail: cleanEmail,
+          score: calculatedScore,
+          submissionId: data?.id,
+          step: "result",
+          isCompleted: true,
+          completedAt: new Date().toISOString()
+        }));
+      } catch (e) {}
 
       // Fetch Leaderboard
       const { data: lbData } = await supabase
@@ -269,9 +446,9 @@ export default function StudentTestPage({ params }: { params: { id: string } }) 
           </Link>
 
           {step === "test" && (
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 md:gap-3">
               {cheatWarnings > 0 && (
-                <div className="flex items-center gap-1.5 text-xs font-bold px-3 py-1 rounded-full bg-red-500/10 text-red-400 border border-red-500/20">
+                <div className="hidden sm:flex items-center gap-1.5 text-xs font-bold px-3 py-1 rounded-full bg-red-500/10 text-red-400 border border-red-500/20">
                   <ShieldAlert size={14} /> Switches: {cheatWarnings}
                 </div>
               )}
@@ -285,10 +462,27 @@ export default function StudentTestPage({ params }: { params: { id: string } }) 
               <div className="text-xs font-bold text-gray-400 bg-white/5 px-3 py-1.5 rounded-full border border-white/10">
                 {currentQuestionIndex + 1} / {questions.length}
               </div>
+
+              <button
+                type="button"
+                onClick={() => setShowForceSubmitModal(true)}
+                disabled={isSubmitting}
+                className="text-xs font-bold px-3.5 py-1.5 rounded-full bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 transition-all flex items-center gap-1.5 shadow-[0_0_15px_rgba(239,68,68,0.15)] hover:scale-105 active:scale-95 disabled:opacity-50 cursor-pointer"
+                title="Finish and submit test early"
+              >
+                <Send size={12} /> <span className="hidden sm:inline">Force</span> Submit
+              </button>
             </div>
           )}
         </div>
       </nav>
+
+      {/* Session Restored Toast */}
+      {sessionRestored && (
+        <div className="fixed top-20 left-1/2 -translate-x-1/2 z-50 bg-young-purple/90 border border-white/20 backdrop-blur-xl px-5 py-2.5 rounded-full text-xs font-bold text-white shadow-2xl flex items-center gap-2 animate-bounce">
+          <CheckCircle2 size={15} className="text-young-green" /> Restored active test session where you left off.
+        </div>
+      )}
 
       {/* Continuous Top Progress Line */}
       {step === "test" && (
@@ -348,9 +542,12 @@ export default function StudentTestPage({ params }: { params: { id: string } }) 
                 <div className="pt-2">
                   <button 
                     type="submit" 
-                    className="w-full py-4 bg-gradient-to-r from-young-purple to-[#818cf8] hover:opacity-95 text-white font-bold rounded-xl flex items-center justify-center gap-2 shadow-[0_0_25px_rgba(99,102,241,0.4)] hover:scale-[1.02] active:scale-[0.98] transition-all"
+                    disabled={isCheckingSubmission}
+                    className="w-full py-4 bg-gradient-to-r from-young-purple to-[#818cf8] hover:opacity-95 text-white font-bold rounded-xl flex items-center justify-center gap-2 shadow-[0_0_25px_rgba(99,102,241,0.4)] hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50"
                   >
-                    Enter Assessment <ArrowRight size={18} />
+                    {isCheckingSubmission ? 'Checking Submission...' : (
+                      <>Enter Assessment <ArrowRight size={18} /></>
+                    )}
                   </button>
                 </div>
               </form>
@@ -456,8 +653,9 @@ export default function StudentTestPage({ params }: { params: { id: string } }) 
                 </div>
 
                 {/* Footer Controls */}
-                <div className="mt-8 pt-6 border-t border-white/5 flex justify-between items-center">
+                <div className="mt-8 pt-6 border-t border-white/5 flex flex-wrap justify-between items-center gap-3">
                   <button 
+                    type="button"
                     onClick={handlePrevious}
                     disabled={currentQuestionIndex === 0 || isSubmitting}
                     className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-sm text-gray-400 hover:text-white hover:bg-white/5 disabled:opacity-30 transition-colors"
@@ -465,14 +663,26 @@ export default function StudentTestPage({ params }: { params: { id: string } }) 
                     <ArrowLeft size={16} /> Previous
                   </button>
 
-                  <button 
-                    onClick={handleNext}
-                    disabled={!answers[questions[currentQuestionIndex].id] || isSubmitting}
-                    className="inline-flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-sm bg-young-purple hover:bg-young-purple/90 text-white disabled:opacity-40 transition-all shadow-[0_0_20px_rgba(99,102,241,0.3)]"
-                  >
-                    {isSubmitting ? 'Submitting...' : currentQuestionIndex === questions.length - 1 ? 'Finish Test' : 'Next Question'}
-                    <ArrowRight size={16} />
-                  </button>
+                  <div className="flex items-center gap-2.5">
+                    <button
+                      type="button"
+                      onClick={() => setShowForceSubmitModal(true)}
+                      disabled={isSubmitting}
+                      className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl font-bold text-xs text-red-400 bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 transition-all active:scale-95 disabled:opacity-40"
+                    >
+                      <Send size={13} /> Force Submit
+                    </button>
+
+                    <button 
+                      type="button"
+                      onClick={handleNext}
+                      disabled={isSubmitting}
+                      className="inline-flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-sm bg-young-purple hover:bg-young-purple/90 text-white disabled:opacity-40 transition-all shadow-[0_0_20px_rgba(99,102,241,0.3)]"
+                    >
+                      {isSubmitting ? 'Submitting...' : currentQuestionIndex === questions.length - 1 ? 'Finish Assessment' : 'Next Question'}
+                      <ArrowRight size={16} />
+                    </button>
+                  </div>
                 </div>
               </div>
             </motion.div>
@@ -553,6 +763,78 @@ export default function StudentTestPage({ params }: { params: { id: string } }) 
           )}
         </AnimatePresence>
       </main>
+
+      {/* Force Submit Confirmation Modal */}
+      <AnimatePresence>
+        {showForceSubmitModal && (
+          <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-[#141414] border border-white/10 rounded-3xl p-6 md:p-8 max-w-md w-full text-center shadow-2xl relative"
+            >
+              <div className="w-14 h-14 rounded-2xl bg-red-500/10 text-red-400 border border-red-500/20 flex items-center justify-center mx-auto mb-4 shadow-[0_0_20px_rgba(239,68,68,0.2)]">
+                <Send size={24} />
+              </div>
+
+              <h3 className="text-xl font-black text-white mb-2">Turn in Assessment Early?</h3>
+              <p className="text-xs text-gray-400 mb-6">
+                You have completed <span className="text-young-green font-bold">{answeredCount}</span> of <span className="font-bold text-white">{questions.length}</span> questions.
+              </p>
+
+              {questions.length - answeredCount > 0 ? (
+                <div className="bg-red-500/10 border border-red-500/20 rounded-2xl p-4 mb-6 text-left">
+                  <p className="text-xs font-bold text-red-400 mb-1 flex items-center gap-1.5">
+                    <AlertCircle size={15} /> {questions.length - answeredCount} Unanswered Question(s)
+                  </p>
+                  <p className="text-xs text-gray-400 leading-relaxed">
+                    Any unanswered questions will receive 0 points. Are you sure you want to finish and submit now?
+                  </p>
+                </div>
+              ) : (
+                <div className="bg-young-green/10 border border-young-green/20 rounded-2xl p-4 mb-6 text-left">
+                  <p className="text-xs font-bold text-young-green mb-1 flex items-center gap-1.5">
+                    <CheckCircle2 size={15} /> All Questions Answered!
+                  </p>
+                  <p className="text-xs text-gray-400 leading-relaxed">
+                    You have answered all questions. Ready to submit and see your final score?
+                  </p>
+                </div>
+              )}
+
+              <div className="grid grid-cols-2 gap-3">
+                {questions.length - answeredCount > 0 ? (
+                  <button
+                    type="button"
+                    onClick={jumpToFirstUnanswered}
+                    className="py-3 px-4 rounded-xl bg-white/10 hover:bg-white/15 text-white font-bold text-xs transition-colors"
+                  >
+                    Review Questions
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setShowForceSubmitModal(false)}
+                    className="py-3 px-4 rounded-xl bg-white/10 hover:bg-white/15 text-white font-bold text-xs transition-colors"
+                  >
+                    Back to Quiz
+                  </button>
+                )}
+
+                <button
+                  type="button"
+                  onClick={submitTest}
+                  disabled={isSubmitting}
+                  className="py-3 px-4 rounded-xl bg-gradient-to-r from-red-600 to-red-500 hover:from-red-500 hover:to-red-600 text-white font-bold text-xs transition-all shadow-lg shadow-red-600/30 disabled:opacity-50"
+                >
+                  {isSubmitting ? 'Submitting...' : 'Yes, Submit Now'}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
