@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/lib/supabase";
-import { ArrowRight, ArrowLeft, CheckCircle2, Circle, Sparkles, Clock, Trophy, Star, ShieldAlert, KeyRound, Send, AlertCircle } from "lucide-react";
+import { ArrowRight, ArrowLeft, CheckCircle2, Circle, Sparkles, Clock, Trophy, Star, ShieldAlert, ShieldCheck, KeyRound, Send, AlertCircle } from "lucide-react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import confetti from "canvas-confetti";
@@ -30,6 +30,11 @@ export default function StudentTestPage({ params }: { params: { id: string } }) 
   const [submissionId, setSubmissionId] = useState<string | null>(null);
   const [showForceSubmitModal, setShowForceSubmitModal] = useState(false);
   const [sessionRestored, setSessionRestored] = useState(false);
+
+  // Anti-Cheat: Tab Switching Enforcement (3-Strike System)
+  const MAX_TAB_SWITCHES = 3;
+  const [showTabSwitchWarning, setShowTabSwitchWarning] = useState(false);
+  const lastSwitchTimeRef = useRef(0);
 
   useEffect(() => {
     fetchTestData();
@@ -87,16 +92,46 @@ export default function StudentTestPage({ params }: { params: { id: string } }) 
     }
   }, [timeLeft, step, isSubmitting]);
 
-  // Anti-Cheat: Visibility change tracking
+  // Anti-Cheat: Visibility change and window blur enforcement
   useEffect(() => {
+    const handleTabViolation = () => {
+      if (step !== "test" || isSubmitting) return;
+
+      const now = Date.now();
+      // Debounce so rapid events (blur + visibilitychange) only count once per 1.5 seconds
+      if (now - lastSwitchTimeRef.current < 1500) return;
+      lastSwitchTimeRef.current = now;
+
+      setCheatWarnings(prev => {
+        const nextCount = prev + 1;
+        if (nextCount >= MAX_TAB_SWITCHES) {
+          // Exceeded allowed tab switches: immediately lock and submit test
+          submitTest(true);
+        } else {
+          setShowTabSwitchWarning(true);
+        }
+        return nextCount;
+      });
+    };
+
     const handleVisibilityChange = () => {
-      if (document.hidden && step === "test") {
-        setCheatWarnings(prev => prev + 1);
+      if (document.hidden) {
+        handleTabViolation();
       }
     };
+
+    const handleBlur = () => {
+      handleTabViolation();
+    };
+
     document.addEventListener("visibilitychange", handleVisibilityChange);
-    return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
-  }, [step]);
+    window.addEventListener("blur", handleBlur);
+
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("blur", handleBlur);
+    };
+  }, [step, isSubmitting]);
 
   // Confetti when result is shown
   useEffect(() => {
@@ -322,9 +357,10 @@ export default function StudentTestPage({ params }: { params: { id: string } }) 
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [handleKeyDown]);
 
-  const submitTest = async () => {
+  const submitTest = async (isAutoDisqualified = false) => {
     setIsSubmitting(true);
     setShowForceSubmitModal(false);
+    setShowTabSwitchWarning(false);
     try {
       let calculatedScore = 0;
       questions.forEach(q => {
@@ -334,11 +370,14 @@ export default function StudentTestPage({ params }: { params: { id: string } }) 
       });
       setScore(calculatedScore);
 
+      const finalSwitches = isAutoDisqualified ? Math.max(cheatWarnings, MAX_TAB_SWITCHES) : cheatWarnings;
+
       // Embed proctoring telemetry in the submission payload
       const submissionAnswers = {
         ...answers,
         _telemetry: {
-          tab_switches: cheatWarnings,
+          tab_switches: finalSwitches,
+          disqualified_for_tab_switching: isAutoDisqualified,
           completed_at: new Date().toISOString()
         }
       };
@@ -367,6 +406,8 @@ export default function StudentTestPage({ params }: { params: { id: string } }) 
           submissionId: data?.id,
           step: "result",
           isCompleted: true,
+          disqualified: isAutoDisqualified,
+          tabSwitches: finalSwitches,
           completedAt: new Date().toISOString()
         }));
       } catch (e) {}
@@ -702,7 +743,24 @@ export default function StudentTestPage({ params }: { params: { id: string } }) 
                 <span className="text-3xl">🎉</span>
               </div>
               <h2 className="text-3xl font-black mb-1 text-white">Assessment Finished!</h2>
-              <p className="text-gray-400 text-sm font-medium mb-8">Great effort, {studentName.split(' ')[0]}.</p>
+              <p className="text-gray-400 text-sm font-medium mb-4">Great effort, {studentName.split(' ')[0]}.</p>
+
+              {/* Proctoring Integrity Summary */}
+              <div className="mb-6 flex justify-center">
+                {cheatWarnings >= MAX_TAB_SWITCHES ? (
+                  <div className="inline-flex items-center gap-2 px-4 py-2 rounded-2xl bg-red-500/10 border border-red-500/30 text-red-400 text-xs font-bold shadow-[0_0_20px_rgba(239,68,68,0.2)]">
+                    <ShieldAlert size={16} /> Exam Auto-Submitted (Exceeded {MAX_TAB_SWITCHES} Tab Switches)
+                  </div>
+                ) : cheatWarnings > 0 ? (
+                  <div className="inline-flex items-center gap-2 px-4 py-2 rounded-2xl bg-yellow-500/10 border border-yellow-500/30 text-yellow-400 text-xs font-bold">
+                    <ShieldAlert size={16} /> Proctoring Notice: {cheatWarnings} Tab Switch(es) Recorded
+                  </div>
+                ) : (
+                  <div className="inline-flex items-center gap-2 px-4 py-2 rounded-2xl bg-young-green/10 border border-young-green/30 text-young-green text-xs font-bold shadow-[0_0_20px_rgba(74,222,128,0.15)]">
+                    <ShieldCheck size={16} /> Clean Integrity Record: 0 Tab Switches
+                  </div>
+                )}
+              </div>
               
               {resultReleased ? (
                 <div className="bg-white/5 border border-white/10 p-8 rounded-3xl mb-8">
@@ -824,13 +882,60 @@ export default function StudentTestPage({ params }: { params: { id: string } }) 
 
                 <button
                   type="button"
-                  onClick={submitTest}
+                  onClick={() => submitTest(false)}
                   disabled={isSubmitting}
                   className="py-3 px-4 rounded-xl bg-gradient-to-r from-red-600 to-red-500 hover:from-red-500 hover:to-red-600 text-white font-bold text-xs transition-all shadow-lg shadow-red-600/30 disabled:opacity-50"
                 >
                   {isSubmitting ? 'Submitting...' : 'Yes, Submit Now'}
                 </button>
               </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Anti-Cheat: Tab Switch Violation Modal */}
+      <AnimatePresence>
+        {showTabSwitchWarning && !isSubmitting && (
+          <div className="fixed inset-0 z-50 bg-black/90 backdrop-blur-xl flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              className="bg-[#141414] border-2 border-red-500/50 rounded-[2.5rem] p-6 md:p-8 max-w-md w-full text-center shadow-[0_0_80px_rgba(239,68,68,0.3)] relative overflow-hidden"
+            >
+              <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-red-600 via-orange-500 to-red-600 animate-pulse"></div>
+
+              <div className="w-16 h-16 rounded-3xl bg-red-500/10 text-red-400 border border-red-500/30 flex items-center justify-center mx-auto mb-5 shadow-[0_0_30px_rgba(239,68,68,0.3)]">
+                <ShieldAlert size={32} className="animate-bounce" />
+              </div>
+
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-red-500/20 text-red-400 border border-red-500/30 mb-3">
+                Strike {cheatWarnings} of {MAX_TAB_SWITCHES}
+              </div>
+
+              <h3 className="text-2xl font-black text-white mb-2">Tab Switch Detected!</h3>
+              
+              <p className="text-xs text-gray-300 mb-6 leading-relaxed">
+                You navigated away from or minimized the exam tab. Leaving this assessment window is strictly monitored.
+              </p>
+
+              <div className="bg-red-500/10 border border-red-500/25 rounded-2xl p-4 mb-6 text-left">
+                <p className="text-xs font-bold text-red-400 mb-1 flex items-center gap-1.5">
+                  <AlertCircle size={14} /> Warning Policy
+                </p>
+                <p className="text-xs text-gray-400 leading-relaxed">
+                  You have <span className="text-white font-bold">{Math.max(0, MAX_TAB_SWITCHES - cheatWarnings)}</span> warning(s) remaining. If you switch tabs again, your test will be <span className="text-red-400 font-bold">automatically terminated and submitted as-is</span>.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setShowTabSwitchWarning(false)}
+                className="w-full py-3.5 px-6 rounded-xl bg-gradient-to-r from-red-600 to-orange-500 hover:opacity-95 text-white font-black text-xs uppercase tracking-wider transition-all shadow-lg shadow-red-600/30 hover:scale-[1.02] active:scale-[0.98]"
+              >
+                I Understand — Return to Exam
+              </button>
             </motion.div>
           </div>
         )}
