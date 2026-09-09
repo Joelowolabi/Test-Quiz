@@ -25,7 +25,7 @@ export default function StudentTestPage({ params }: { params: { id: string } }) 
   const [timeLeft, setTimeLeft] = useState<number | null>(null);
   const [cheatWarnings, setCheatWarnings] = useState(0);
   const [resultRequested, setResultRequested] = useState(false);
-  const [resultReleased, setResultReleased] = useState(false);
+  const [resultReleased, setResultReleased] = useState(true);
   const [submissionId, setSubmissionId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -72,26 +72,6 @@ export default function StudentTestPage({ params }: { params: { id: string } }) 
       }
     }
   }, [step]);
-
-  useEffect(() => {
-    let poller: any;
-    if (step === "result" && !resultReleased && submissionId) {
-      poller = setInterval(async () => {
-        const { data } = await supabase
-          .from('submissions')
-          .select('result_released')
-          .eq('id', submissionId)
-          .single();
-          
-        if (data && data.result_released) {
-          setResultReleased(true);
-        }
-      }, 5000);
-    }
-    return () => {
-      if (poller) clearInterval(poller);
-    };
-  }, [step, resultReleased, submissionId]);
 
   const formatTime = (seconds: number) => {
     const m = Math.floor(seconds / 60);

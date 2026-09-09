@@ -21,15 +21,16 @@ export async function GET(req: Request) {
       }
     }
 
-    // 2. Fetch all published tests and match by 6-digit PIN or ID prefix
+    // 2. Fetch tests and match by 6-digit PIN or ID prefix
     const { data: tests, error } = await supabase
       .from('tests')
-      .select('id, title, status')
+      .select('id, title')
       .order('created_at', { ascending: false })
-      .limit(200);
+      .limit(500);
 
     if (error || !tests) {
-      return NextResponse.json({ error: 'Could not search tests.' }, { status: 500 });
+      console.error('Supabase error fetching tests in pin route:', error);
+      return NextResponse.json({ error: 'Could not search tests: ' + (error?.message || 'Database error') }, { status: 500 });
     }
 
     const matchedTest = tests.find(t => {
