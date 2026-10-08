@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/lib/supabase";
-import { ArrowRight, ArrowLeft, CheckCircle2, Circle, Sparkles, Clock, Trophy, Star, ShieldAlert, ShieldCheck, KeyRound, Send, AlertCircle } from "lucide-react";
+import { ArrowRight, ArrowLeft, CheckCircle2, Circle, Sparkles, Clock, Trophy, Star, ShieldAlert, ShieldCheck, KeyRound, Send, AlertCircle, Zap, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import confetti from "canvas-confetti";
@@ -448,9 +448,10 @@ export default function StudentTestPage({ params }: { params: { id: string } }) 
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#0a0a0a] text-white">
-        <div className="flex items-center gap-3 bg-white/5 border border-white/10 px-6 py-4 rounded-2xl shadow-2xl backdrop-blur-xl">
-          <Sparkles className="animate-spin text-young-purple" /> Loading quiz room...
+      <div className="min-h-screen flex items-center justify-center bg-[#f8fafc] text-slate-800 font-sans">
+        <div className="flex items-center gap-3 bg-white border border-slate-200 px-6 py-4 rounded-2xl shadow-sm">
+          <Loader2 className="animate-spin text-[#0c1322]" size={20} />
+          <span className="text-sm font-bold text-slate-700">Loading quiz room...</span>
         </div>
       </div>
     );
@@ -458,11 +459,11 @@ export default function StudentTestPage({ params }: { params: { id: string } }) 
 
   if (!test || questions.length === 0) {
     return (
-      <div className="min-h-screen bg-[#0a0a0a] text-white flex flex-col items-center justify-center p-4">
-        <div className="bg-[#141414] border border-white/10 p-8 rounded-3xl text-center max-w-md">
-          <h2 className="text-2xl font-black mb-2">Quiz Not Found</h2>
-          <p className="text-gray-400 mb-6">This test may have been removed or has no questions available.</p>
-          <Link href="/" className="px-6 py-3 bg-young-purple font-bold rounded-xl text-white inline-block">
+      <div className="min-h-screen bg-[#f8fafc] text-slate-900 flex flex-col items-center justify-center p-4 font-sans">
+        <div className="bg-white border border-slate-200 p-8 rounded-3xl text-center max-w-md shadow-sm">
+          <h2 className="text-2xl font-extrabold mb-2 text-[#0c1322]">Quiz Not Found</h2>
+          <p className="text-slate-500 mb-6 text-sm font-medium">This assessment may have been removed or has no questions available.</p>
+          <Link href="/" className="px-6 py-3 bg-[#0c1322] hover:bg-[#182542] font-bold rounded-full text-white text-xs inline-block shadow-md">
             Back to Home
           </Link>
         </div>
@@ -474,33 +475,38 @@ export default function StudentTestPage({ params }: { params: { id: string } }) 
   const progressPercent = Math.round(((currentQuestionIndex + 1) / questions.length) * 100);
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white flex flex-col font-sans relative selection:bg-young-purple selection:text-white">
-      {/* Background Grid Pattern */}
-      <div className="absolute inset-0 bg-[linear-gradient(to_right,#8080800d_1px,transparent_1px),linear-gradient(to_bottom,#8080800d_1px,transparent_1px)] bg-[size:28px_28px] pointer-events-none"></div>
-
+    <div className="min-h-screen bg-[#f8fafc] text-slate-900 flex flex-col font-sans relative selection:bg-[#fbbf24] selection:text-slate-900">
       {/* Navigation & Status Bar */}
       <nav className="p-4 md:p-6 sticky top-0 z-50">
-        <div className="max-w-4xl mx-auto flex justify-between items-center backdrop-blur-xl bg-black/50 border border-white/10 rounded-full px-6 py-3 shadow-2xl">
-          <Link href="/" className="font-black text-lg tracking-tighter flex items-center gap-2">
-            <span className="text-white">YOUNG</span>
-            <span className="text-young-purple">&amp;TEST</span>
+        <div className="max-w-4xl mx-auto flex justify-between items-center backdrop-blur-xl bg-white/90 border border-slate-200 rounded-full px-5 sm:px-6 py-3 shadow-sm">
+          <Link href="/" className="font-black text-lg tracking-tight flex items-center gap-2 text-[#0c1322]">
+            <div className="w-8 h-8 rounded-full bg-[#0c1322] flex items-center justify-center text-white shadow-sm">
+              <Zap size={15} className="text-[#fbbf24] fill-[#fbbf24]" />
+            </div>
+            <span>
+              Young<span className="text-[#f59e0b]">&amp;</span>Test
+            </span>
           </Link>
 
           {step === "test" && (
-            <div className="flex items-center gap-2 md:gap-3">
+            <div className="flex items-center gap-2 sm:gap-3">
               {cheatWarnings > 0 && (
-                <div className="hidden sm:flex items-center gap-1.5 text-xs font-bold px-3 py-1 rounded-full bg-red-500/10 text-red-400 border border-red-500/20">
-                  <ShieldAlert size={14} /> Switches: {cheatWarnings}
+                <div className="hidden sm:flex items-center gap-1.5 text-xs font-bold px-3 py-1 rounded-full bg-red-50 text-red-700 border border-red-200">
+                  <ShieldAlert size={13} /> Switches: {cheatWarnings}/3
                 </div>
               )}
 
               {timeLeft !== null && (
-                <div className={`text-xs font-mono font-bold px-3 py-1.5 rounded-full flex items-center gap-1.5 border ${timeLeft < 60 ? 'bg-red-500/20 text-red-400 border-red-500/30 animate-pulse' : 'bg-young-green/10 text-young-green border-young-green/20'}`}>
-                  <Clock size={14} /> {formatTime(timeLeft)}
+                <div className={`text-xs font-mono font-bold px-3 py-1.5 rounded-full flex items-center gap-1.5 border ${
+                  timeLeft < 60 
+                    ? 'bg-red-50 text-red-700 border-red-200 animate-pulse' 
+                    : 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                }`}>
+                  <Clock size={13} /> {formatTime(timeLeft)}
                 </div>
               )}
 
-              <div className="text-xs font-bold text-gray-400 bg-white/5 px-3 py-1.5 rounded-full border border-white/10">
+              <div className="text-xs font-bold text-slate-600 bg-slate-100 px-3 py-1.5 rounded-full border border-slate-200">
                 {currentQuestionIndex + 1} / {questions.length}
               </div>
 
@@ -508,10 +514,10 @@ export default function StudentTestPage({ params }: { params: { id: string } }) 
                 type="button"
                 onClick={() => setShowForceSubmitModal(true)}
                 disabled={isSubmitting}
-                className="text-xs font-bold px-3.5 py-1.5 rounded-full bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 transition-all flex items-center gap-1.5 shadow-[0_0_15px_rgba(239,68,68,0.15)] hover:scale-105 active:scale-95 disabled:opacity-50 cursor-pointer"
+                className="text-xs font-bold px-3.5 py-1.5 rounded-full bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 transition-all flex items-center gap-1.5 active:scale-95 disabled:opacity-50 cursor-pointer shadow-sm"
                 title="Finish and submit test early"
               >
-                <Send size={12} /> <span className="hidden sm:inline">Force</span> Submit
+                <Send size={11} /> <span className="hidden sm:inline">Force</span> Submit
               </button>
             </div>
           )}
@@ -520,16 +526,16 @@ export default function StudentTestPage({ params }: { params: { id: string } }) 
 
       {/* Session Restored Toast */}
       {sessionRestored && (
-        <div className="fixed top-20 left-1/2 -translate-x-1/2 z-50 bg-young-purple/90 border border-white/20 backdrop-blur-xl px-5 py-2.5 rounded-full text-xs font-bold text-white shadow-2xl flex items-center gap-2 animate-bounce">
-          <CheckCircle2 size={15} className="text-young-green" /> Restored active test session where you left off.
+        <div className="fixed top-20 left-1/2 -translate-x-1/2 z-50 bg-[#0c1322] text-white border border-slate-800 px-5 py-2.5 rounded-full text-xs font-bold shadow-xl flex items-center gap-2 animate-bounce">
+          <CheckCircle2 size={15} className="text-[#fbbf24]" /> Active test progress restored.
         </div>
       )}
 
       {/* Continuous Top Progress Line */}
       {step === "test" && (
-        <div className="w-full bg-white/5 h-1.5">
+        <div className="w-full bg-slate-200 h-1.5">
           <motion.div 
-            className="h-full bg-gradient-to-r from-young-green via-young-purple to-[#818cf8]"
+            className="h-full bg-gradient-to-r from-amber-400 via-amber-500 to-[#0c1322]"
             animate={{ width: `${progressPercent}%` }}
             transition={{ ease: "easeOut", duration: 0.3 }}
           />
@@ -545,37 +551,35 @@ export default function StudentTestPage({ params }: { params: { id: string } }) 
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
-              className="bg-[#141414] p-8 md:p-12 rounded-[2.5rem] border border-white/10 max-w-lg w-full text-center relative overflow-hidden shadow-2xl"
+              className="bg-white p-8 sm:p-11 rounded-[2.5rem] border border-slate-200 max-w-lg w-full text-center relative overflow-hidden shadow-sm"
             >
-              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-young-green via-young-purple to-young-orange"></div>
-              
-              <span className="inline-flex items-center gap-1.5 bg-white/5 border border-white/10 text-young-green px-3.5 py-1 rounded-full text-xs font-bold uppercase tracking-wider mb-4">
-                <Sparkles size={13} /> Classroom Quiz
+              <span className="inline-flex items-center gap-1.5 bg-[#fffbeb] border border-[#fde68a] text-[#b45309] px-3.5 py-1 rounded-full text-xs font-bold uppercase tracking-wider mb-4">
+                <Sparkles size={12} className="text-[#f59e0b]" /> Proctored Classroom Quiz
               </span>
               
-              <h1 className="text-3xl md:text-4xl font-black mb-3 text-white">{test.title}</h1>
-              <p className="text-gray-400 text-sm font-medium mb-8">
-                {questions.length} questions • {test.time_limit > 0 ? `${test.time_limit} min limit` : 'No time limit'}
+              <h1 className="text-2xl sm:text-3xl font-extrabold mb-2 text-[#0c1322]">{test.title}</h1>
+              <p className="text-slate-500 text-xs sm:text-sm font-medium mb-7">
+                {questions.length} questions • {test.time_limit > 0 ? `${test.time_limit} min limit` : 'No time limit'} • 3-strike tab proctoring
               </p>
               
               <form onSubmit={handleStartTest} className="space-y-4 text-left">
                 <div>
-                  <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Your Name</label>
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Your Full Name</label>
                   <input 
                     type="text" required
                     value={studentName}
                     onChange={e => setStudentName(e.target.value)}
-                    className="w-full px-5 py-3.5 rounded-xl bg-white/5 border border-white/10 text-white focus:border-young-purple focus:ring-2 focus:ring-young-purple/20 outline-none transition-all placeholder:text-gray-600 font-medium"
+                    className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 focus:bg-white focus:border-[#0c1322] focus:ring-2 focus:ring-[#0c1322]/10 outline-none transition-all placeholder:text-slate-400 font-medium text-sm"
                     placeholder="e.g. Alex Johnson"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Student Email</label>
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Student Email Address</label>
                   <input 
                     type="email" required
                     value={studentEmail}
                     onChange={e => setStudentEmail(e.target.value)}
-                    className="w-full px-5 py-3.5 rounded-xl bg-white/5 border border-white/10 text-white focus:border-young-purple focus:ring-2 focus:ring-young-purple/20 outline-none transition-all placeholder:text-gray-600 font-medium"
+                    className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 focus:bg-white focus:border-[#0c1322] focus:ring-2 focus:ring-[#0c1322]/10 outline-none transition-all placeholder:text-slate-400 font-medium text-sm"
                     placeholder="alex@school.edu"
                   />
                 </div>
@@ -584,10 +588,12 @@ export default function StudentTestPage({ params }: { params: { id: string } }) 
                   <button 
                     type="submit" 
                     disabled={isCheckingSubmission}
-                    className="w-full py-4 bg-gradient-to-r from-young-purple to-[#818cf8] hover:opacity-95 text-white font-bold rounded-xl flex items-center justify-center gap-2 shadow-[0_0_25px_rgba(99,102,241,0.4)] hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50"
+                    className="w-full py-3.5 bg-[#0c1322] hover:bg-[#182542] text-white font-bold rounded-xl flex items-center justify-center gap-2 shadow-md shadow-slate-900/10 hover:scale-[1.01] active:scale-[0.98] transition-all disabled:opacity-50 text-sm"
                   >
-                    {isCheckingSubmission ? 'Checking Submission...' : (
-                      <>Enter Assessment <ArrowRight size={18} /></>
+                    {isCheckingSubmission ? (
+                      <><Loader2 size={16} className="animate-spin text-[#fbbf24]" /> Verifying...</>
+                    ) : (
+                      <>Enter Assessment <ArrowRight size={16} /></>
                     )}
                   </button>
                 </div>
@@ -609,7 +615,7 @@ export default function StudentTestPage({ params }: { params: { id: string } }) 
               style={{ userSelect: "none" }}
             >
               {/* Question Navigation Dot Bar */}
-              <div className="flex items-center justify-center gap-1.5 mb-6 overflow-x-auto py-2">
+              <div className="flex items-center justify-center gap-1.5 mb-5 overflow-x-auto py-2">
                 {questions.map((q, idx) => {
                   const isAnswered = !!answers[q.id];
                   const isCurrent = idx === currentQuestionIndex;
@@ -621,12 +627,12 @@ export default function StudentTestPage({ params }: { params: { id: string } }) 
                       onClick={() => setCurrentQuestionIndex(idx)}
                       className={`w-7 h-7 rounded-full text-xs font-bold flex items-center justify-center transition-all ${
                         isCurrent 
-                          ? 'ring-2 ring-young-purple bg-young-purple text-white scale-110' 
+                          ? 'ring-2 ring-[#0c1322] bg-[#0c1322] text-white scale-110 shadow-sm' 
                           : isFlag
-                          ? 'bg-young-orange text-white'
+                          ? 'bg-amber-500 text-white'
                           : isAnswered
-                          ? 'bg-young-green/30 text-young-green border border-young-green/50'
-                          : 'bg-white/5 text-gray-500 hover:bg-white/10'
+                          ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                          : 'bg-white text-slate-600 border border-slate-200 hover:border-slate-400'
                       }`}
                       title={`Question ${idx + 1}`}
                     >
@@ -637,28 +643,28 @@ export default function StudentTestPage({ params }: { params: { id: string } }) 
               </div>
 
               {/* Main Question Card */}
-              <div className="bg-[#141414] p-6 md:p-10 rounded-[2.5rem] border border-white/10 shadow-2xl relative">
-                <div className="flex justify-between items-start gap-4 mb-6">
-                  <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-gray-400">
-                    <span>Question {currentQuestionIndex + 1}</span>
+              <div className="bg-white p-6 sm:p-10 rounded-[2.5rem] border border-slate-200/90 shadow-sm relative">
+                <div className="flex justify-between items-start gap-4 mb-5">
+                  <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-slate-500">
+                    <span>Question {currentQuestionIndex + 1} of {questions.length}</span>
                     <span>•</span>
-                    <span className="text-young-purple">Press 1-4 or A-D</span>
+                    <span className="text-[#0c1322] font-extrabold">Keys 1-4 / A-D</span>
                   </div>
 
                   <button
                     onClick={() => toggleFlag(questions[currentQuestionIndex].id)}
                     className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition-all border ${
                       flagged[questions[currentQuestionIndex].id]
-                        ? 'bg-young-orange/20 text-young-orange border-young-orange/40'
-                        : 'bg-white/5 text-gray-400 border-white/10 hover:text-white'
+                        ? 'bg-amber-100 text-amber-800 border-amber-300'
+                        : 'bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200'
                     }`}
                   >
-                    <Star size={13} fill={flagged[questions[currentQuestionIndex].id] ? "currentColor" : "none"} />
+                    <Star size={12} fill={flagged[questions[currentQuestionIndex].id] ? "currentColor" : "none"} />
                     {flagged[questions[currentQuestionIndex].id] ? 'Flagged' : 'Flag (F)'}
                   </button>
                 </div>
 
-                <h2 className="text-xl md:text-2xl font-bold mb-8 text-white leading-relaxed">
+                <h2 className="text-lg sm:text-2xl font-extrabold mb-7 text-[#0c1322] leading-snug">
                   {questions[currentQuestionIndex].question_text}
                 </h2>
                 
@@ -670,58 +676,62 @@ export default function StudentTestPage({ params }: { params: { id: string } }) 
                     return (
                       <motion.button
                         key={i}
-                        whileHover={{ scale: 1.01 }}
-                        whileTap={{ scale: 0.99 }}
+                        whileHover={{ scale: 1.005 }}
+                        whileTap={{ scale: 0.995 }}
                         onClick={() => handleSelectOption(questions[currentQuestionIndex].id, option)}
-                        className={`w-full text-left p-4 md:p-5 rounded-2xl border transition-all flex items-center gap-4 ${
+                        className={`w-full text-left p-4 sm:p-5 rounded-2xl border transition-all flex items-center gap-3.5 ${
                           isSelected 
-                            ? 'border-young-purple bg-young-purple/10 text-white font-bold shadow-[0_0_20px_rgba(99,102,241,0.2)]' 
-                            : 'border-white/5 bg-white/5 hover:bg-white/10 text-gray-300 font-medium'
+                            ? 'border-[#0c1322] bg-[#0c1322] text-white font-bold shadow-md' 
+                            : 'border-slate-200 bg-slate-50/70 hover:bg-slate-100 hover:border-slate-300 text-slate-800 font-semibold'
                         }`}
                       >
-                        <span className={`w-8 h-8 rounded-xl text-xs font-black flex items-center justify-center transition-all ${
+                        <span className={`w-7 h-7 rounded-lg text-xs font-black flex items-center justify-center transition-all ${
                           isSelected 
-                            ? 'bg-young-purple text-white shadow-md' 
-                            : 'bg-white/10 text-gray-400'
+                            ? 'bg-white/20 text-white' 
+                            : 'bg-white text-slate-700 border border-slate-200'
                         }`}>
                           {letter}
                         </span>
-                        <span className="flex-1 text-sm md:text-base">{option}</span>
-                        {isSelected ? <CheckCircle2 size={20} className="text-young-purple flex-shrink-0" /> : <Circle size={20} className="text-gray-600 flex-shrink-0" />}
+                        <span className="flex-1 text-sm sm:text-base leading-snug">{option}</span>
+                        {isSelected ? (
+                          <CheckCircle2 size={18} className="text-[#fbbf24] flex-shrink-0" />
+                        ) : (
+                          <Circle size={18} className="text-slate-300 flex-shrink-0" />
+                        )}
                       </motion.button>
                     );
                   })}
                 </div>
 
                 {/* Footer Controls */}
-                <div className="mt-8 pt-6 border-t border-white/5 flex flex-wrap justify-between items-center gap-3">
+                <div className="mt-8 pt-5 border-t border-slate-100 flex flex-wrap justify-between items-center gap-3">
                   <button 
                     type="button"
                     onClick={handlePrevious}
                     disabled={currentQuestionIndex === 0 || isSubmitting}
-                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-sm text-gray-400 hover:text-white hover:bg-white/5 disabled:opacity-30 transition-colors"
+                    className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs text-slate-600 hover:text-slate-900 hover:bg-slate-100 disabled:opacity-30 transition-colors"
                   >
-                    <ArrowLeft size={16} /> Previous
+                    <ArrowLeft size={14} /> Previous
                   </button>
 
-                  <div className="flex items-center gap-2.5">
+                  <div className="flex items-center gap-2">
                     <button
                       type="button"
                       onClick={() => setShowForceSubmitModal(true)}
                       disabled={isSubmitting}
-                      className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl font-bold text-xs text-red-400 bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 transition-all active:scale-95 disabled:opacity-40"
+                      className="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl font-bold text-xs text-red-700 bg-red-50 hover:bg-red-100 border border-red-200 transition-all active:scale-95 disabled:opacity-40"
                     >
-                      <Send size={13} /> Force Submit
+                      <Send size={12} /> Force Submit
                     </button>
 
                     <button 
                       type="button"
                       onClick={handleNext}
                       disabled={isSubmitting}
-                      className="inline-flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-sm bg-young-purple hover:bg-young-purple/90 text-white disabled:opacity-40 transition-all shadow-[0_0_20px_rgba(99,102,241,0.3)]"
+                      className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl font-bold text-xs bg-[#0c1322] hover:bg-[#182542] text-white disabled:opacity-40 transition-all shadow-md shadow-slate-900/10"
                     >
                       {isSubmitting ? 'Submitting...' : currentQuestionIndex === questions.length - 1 ? 'Finish Assessment' : 'Next Question'}
-                      <ArrowRight size={16} />
+                      <ArrowRight size={14} />
                     </button>
                   </div>
                 </div>
@@ -735,55 +745,53 @@ export default function StudentTestPage({ params }: { params: { id: string } }) 
               key="result"
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
-              className="bg-[#141414] p-8 md:p-12 rounded-[3rem] border border-white/10 shadow-2xl max-w-xl w-full text-center relative overflow-hidden"
+              className="bg-white p-8 sm:p-12 rounded-[2.5rem] border border-slate-200 shadow-sm max-w-xl w-full text-center relative overflow-hidden"
             >
-              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-young-green via-young-purple to-young-orange"></div>
-              
-              <div className="w-20 h-20 bg-young-green/20 border border-young-green/30 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-[0_0_30px_rgba(74,222,128,0.3)]">
-                <span className="text-3xl">🎉</span>
+              <div className="w-16 h-16 bg-[#fffbeb] border border-[#fde68a] rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-sm">
+                <span className="text-2xl">🎉</span>
               </div>
-              <h2 className="text-3xl font-black mb-1 text-white">Assessment Finished!</h2>
-              <p className="text-gray-400 text-sm font-medium mb-4">Great effort, {studentName.split(' ')[0]}.</p>
+              <h2 className="text-2xl sm:text-3xl font-extrabold mb-1 text-[#0c1322]">Assessment Complete!</h2>
+              <p className="text-slate-500 text-xs sm:text-sm font-medium mb-4">Well done, {studentName.split(' ')[0]}.</p>
 
               {/* Proctoring Integrity Summary */}
               <div className="mb-6 flex justify-center">
                 {cheatWarnings >= MAX_TAB_SWITCHES ? (
-                  <div className="inline-flex items-center gap-2 px-4 py-2 rounded-2xl bg-red-500/10 border border-red-500/30 text-red-400 text-xs font-bold shadow-[0_0_20px_rgba(239,68,68,0.2)]">
-                    <ShieldAlert size={16} /> Exam Auto-Submitted (Exceeded {MAX_TAB_SWITCHES} Tab Switches)
+                  <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-red-50 border border-red-200 text-red-700 text-xs font-bold">
+                    <ShieldAlert size={14} /> Auto-Submitted: Exceeded {MAX_TAB_SWITCHES} Tab Switches
                   </div>
                 ) : cheatWarnings > 0 ? (
-                  <div className="inline-flex items-center gap-2 px-4 py-2 rounded-2xl bg-yellow-500/10 border border-yellow-500/30 text-yellow-400 text-xs font-bold">
-                    <ShieldAlert size={16} /> Proctoring Notice: {cheatWarnings} Tab Switch(es) Recorded
+                  <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-amber-50 border border-amber-200 text-amber-800 text-xs font-bold">
+                    <ShieldAlert size={14} /> Proctoring Notice: {cheatWarnings} Tab Switch(es)
                   </div>
                 ) : (
-                  <div className="inline-flex items-center gap-2 px-4 py-2 rounded-2xl bg-young-green/10 border border-young-green/30 text-young-green text-xs font-bold shadow-[0_0_20px_rgba(74,222,128,0.15)]">
-                    <ShieldCheck size={16} /> Clean Integrity Record: 0 Tab Switches
+                  <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold">
+                    <ShieldCheck size={14} /> Clean Record: 0 Tab Switches
                   </div>
                 )}
               </div>
               
               {resultReleased ? (
-                <div className="bg-white/5 border border-white/10 p-8 rounded-3xl mb-8">
-                  <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Final Score</p>
-                  <p className="text-6xl font-black text-young-green">
-                    {score}<span className="text-2xl text-gray-500">/{questions.length}</span>
+                <div className="bg-slate-50 border border-slate-200 p-6 rounded-2xl mb-6">
+                  <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Final Score</p>
+                  <p className="text-5xl font-black text-[#0c1322]">
+                    {score}<span className="text-xl text-slate-400">/{questions.length}</span>
                   </p>
-                  <p className="text-sm font-bold mt-2 text-gray-300">
+                  <p className="text-xs font-bold mt-2 text-emerald-700">
                     {Math.round((score / questions.length) * 100)}% Accuracy
                   </p>
                 </div>
               ) : (
-                <div className="bg-white/5 border border-white/10 p-8 rounded-3xl mb-8">
-                  <p className="text-base font-bold text-white mb-2">Results are currently hidden by the teacher.</p>
-                  <p className="text-xs text-gray-400 mb-6">Your answers have been securely recorded.</p>
+                <div className="bg-slate-50 border border-slate-200 p-6 rounded-2xl mb-6">
+                  <p className="text-sm font-bold text-[#0c1322] mb-1">Results are currently locked by the teacher.</p>
+                  <p className="text-xs text-slate-500 mb-4">Your responses have been recorded securely.</p>
                   {resultRequested ? (
-                    <div className="text-xs font-bold text-young-purple bg-young-purple/10 py-2.5 px-4 rounded-xl border border-young-purple/20">
-                      Request sent. Awaiting teacher release...
+                    <div className="text-xs font-bold text-[#0c1322] bg-slate-200 py-2 px-4 rounded-xl">
+                      Release requested. Awaiting teacher approval.
                     </div>
                   ) : (
                     <button
                       onClick={handleRequestResult}
-                      className="w-full py-3 bg-white/10 hover:bg-white/15 text-white font-bold rounded-xl text-sm transition-all border border-white/10"
+                      className="w-full py-2.5 bg-[#0c1322] hover:bg-[#182542] text-white font-bold rounded-xl text-xs transition-all"
                     >
                       Request Score Release
                     </button>
@@ -792,29 +800,29 @@ export default function StudentTestPage({ params }: { params: { id: string } }) 
               )}
 
               {leaderboard.length > 0 && (
-                <div className="bg-white/5 border border-white/10 text-left p-6 rounded-3xl mb-8">
-                  <h3 className="font-bold flex items-center gap-2 mb-4 text-white text-base">
-                    <Trophy size={18} className="text-young-orange" /> Class Leaderboard
+                <div className="bg-slate-50 border border-slate-200 text-left p-5 rounded-2xl mb-6">
+                  <h3 className="font-extrabold flex items-center gap-2 mb-3 text-[#0c1322] text-sm">
+                    <Trophy size={16} className="text-amber-500" /> Class Leaderboard
                   </h3>
-                  <div className="space-y-2.5">
+                  <div className="space-y-2">
                     {leaderboard.map((entry, idx) => (
-                      <div key={idx} className="flex justify-between items-center bg-white/5 p-3 rounded-xl border border-white/5">
-                        <div className="flex items-center gap-3">
-                          <span className={`w-6 h-6 rounded-lg flex items-center justify-center text-xs font-black ${
-                            idx === 0 ? 'bg-young-orange text-white' : idx === 1 ? 'bg-gray-400 text-black' : idx === 2 ? 'bg-orange-400/50 text-white' : 'bg-white/10 text-gray-400'
+                      <div key={idx} className="flex justify-between items-center bg-white p-2.5 rounded-xl border border-slate-200 text-xs">
+                        <div className="flex items-center gap-2.5">
+                          <span className={`w-5 h-5 rounded-md flex items-center justify-center font-extrabold text-[10px] ${
+                            idx === 0 ? 'bg-[#0c1322] text-[#fbbf24]' : 'bg-slate-100 text-slate-700'
                           }`}>
                             {idx + 1}
                           </span>
-                          <span className="font-bold text-sm text-gray-200">{entry.student_name}</span>
+                          <span className="font-bold text-slate-800">{entry.student_name}</span>
                         </div>
-                        <span className="font-black text-sm text-young-green">{entry.score} pts</span>
+                        <span className="font-black text-[#0c1322]">{entry.score} pts</span>
                       </div>
                     ))}
                   </div>
                 </div>
               )}
               
-              <Link href="/" className="inline-flex items-center gap-2 px-8 py-3 bg-white/10 hover:bg-white/15 text-white font-bold text-sm rounded-xl transition-all border border-white/10">
+              <Link href="/" className="inline-flex items-center gap-2 px-6 py-2.5 bg-[#0c1322] hover:bg-[#182542] text-white font-bold text-xs rounded-full transition-all shadow-sm">
                 Back to Homepage
               </Link>
             </motion.div>
@@ -825,48 +833,48 @@ export default function StudentTestPage({ params }: { params: { id: string } }) 
       {/* Force Submit Confirmation Modal */}
       <AnimatePresence>
         {showForceSubmitModal && (
-          <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
             <motion.div 
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-[#141414] border border-white/10 rounded-3xl p-6 md:p-8 max-w-md w-full text-center shadow-2xl relative"
+              className="bg-white border border-slate-200 rounded-3xl p-6 md:p-8 max-w-md w-full text-center shadow-2xl relative"
             >
-              <div className="w-14 h-14 rounded-2xl bg-red-500/10 text-red-400 border border-red-500/20 flex items-center justify-center mx-auto mb-4 shadow-[0_0_20px_rgba(239,68,68,0.2)]">
-                <Send size={24} />
+              <div className="w-12 h-12 rounded-2xl bg-red-50 text-red-700 border border-red-200 flex items-center justify-center mx-auto mb-3 shadow-sm">
+                <Send size={20} />
               </div>
 
-              <h3 className="text-xl font-black text-white mb-2">Turn in Assessment Early?</h3>
-              <p className="text-xs text-gray-400 mb-6">
-                You have completed <span className="text-young-green font-bold">{answeredCount}</span> of <span className="font-bold text-white">{questions.length}</span> questions.
+              <h3 className="text-lg font-extrabold text-[#0c1322] mb-1">Turn in Assessment Early?</h3>
+              <p className="text-xs text-slate-500 mb-5">
+                You answered <span className="text-emerald-700 font-bold">{answeredCount}</span> of <span className="font-bold text-slate-900">{questions.length}</span> questions.
               </p>
 
               {questions.length - answeredCount > 0 ? (
-                <div className="bg-red-500/10 border border-red-500/20 rounded-2xl p-4 mb-6 text-left">
-                  <p className="text-xs font-bold text-red-400 mb-1 flex items-center gap-1.5">
-                    <AlertCircle size={15} /> {questions.length - answeredCount} Unanswered Question(s)
+                <div className="bg-red-50 border border-red-200 rounded-2xl p-3.5 mb-5 text-left">
+                  <p className="text-xs font-bold text-red-700 mb-0.5 flex items-center gap-1.5">
+                    <AlertCircle size={14} /> {questions.length - answeredCount} Unanswered Question(s)
                   </p>
-                  <p className="text-xs text-gray-400 leading-relaxed">
-                    Any unanswered questions will receive 0 points. Are you sure you want to finish and submit now?
+                  <p className="text-xs text-slate-600 leading-relaxed">
+                    Unanswered questions receive 0 points. Are you sure you want to finish and submit now?
                   </p>
                 </div>
               ) : (
-                <div className="bg-young-green/10 border border-young-green/20 rounded-2xl p-4 mb-6 text-left">
-                  <p className="text-xs font-bold text-young-green mb-1 flex items-center gap-1.5">
-                    <CheckCircle2 size={15} /> All Questions Answered!
+                <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-3.5 mb-5 text-left">
+                  <p className="text-xs font-bold text-emerald-800 mb-0.5 flex items-center gap-1.5">
+                    <CheckCircle2 size={14} /> All Questions Answered!
                   </p>
-                  <p className="text-xs text-gray-400 leading-relaxed">
-                    You have answered all questions. Ready to submit and see your final score?
+                  <p className="text-xs text-slate-600 leading-relaxed">
+                    Ready to submit and view your final score?
                   </p>
                 </div>
               )}
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 gap-2.5">
                 {questions.length - answeredCount > 0 ? (
                   <button
                     type="button"
                     onClick={jumpToFirstUnanswered}
-                    className="py-3 px-4 rounded-xl bg-white/10 hover:bg-white/15 text-white font-bold text-xs transition-colors"
+                    className="py-2.5 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition-colors"
                   >
                     Review Questions
                   </button>
@@ -874,7 +882,7 @@ export default function StudentTestPage({ params }: { params: { id: string } }) 
                   <button
                     type="button"
                     onClick={() => setShowForceSubmitModal(false)}
-                    className="py-3 px-4 rounded-xl bg-white/10 hover:bg-white/15 text-white font-bold text-xs transition-colors"
+                    className="py-2.5 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition-colors"
                   >
                     Back to Quiz
                   </button>
@@ -884,7 +892,7 @@ export default function StudentTestPage({ params }: { params: { id: string } }) 
                   type="button"
                   onClick={() => submitTest(false)}
                   disabled={isSubmitting}
-                  className="py-3 px-4 rounded-xl bg-gradient-to-r from-red-600 to-red-500 hover:from-red-500 hover:to-red-600 text-white font-bold text-xs transition-all shadow-lg shadow-red-600/30 disabled:opacity-50"
+                  className="py-2.5 px-3 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs transition-all shadow-sm disabled:opacity-50"
                 >
                   {isSubmitting ? 'Submitting...' : 'Yes, Submit Now'}
                 </button>
@@ -897,44 +905,42 @@ export default function StudentTestPage({ params }: { params: { id: string } }) 
       {/* Anti-Cheat: Tab Switch Violation Modal */}
       <AnimatePresence>
         {showTabSwitchWarning && !isSubmitting && (
-          <div className="fixed inset-0 z-50 bg-black/90 backdrop-blur-xl flex items-center justify-center p-4">
+          <div className="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-sm flex items-center justify-center p-4">
             <motion.div 
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9 }}
-              className="bg-[#141414] border-2 border-red-500/50 rounded-[2.5rem] p-6 md:p-8 max-w-md w-full text-center shadow-[0_0_80px_rgba(239,68,68,0.3)] relative overflow-hidden"
+              className="bg-white border-2 border-red-300 rounded-[2rem] p-6 md:p-8 max-w-md w-full text-center shadow-2xl relative overflow-hidden"
             >
-              <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-red-600 via-orange-500 to-red-600 animate-pulse"></div>
-
-              <div className="w-16 h-16 rounded-3xl bg-red-500/10 text-red-400 border border-red-500/30 flex items-center justify-center mx-auto mb-5 shadow-[0_0_30px_rgba(239,68,68,0.3)]">
-                <ShieldAlert size={32} className="animate-bounce" />
+              <div className="w-14 h-14 rounded-2xl bg-red-50 text-red-600 border border-red-200 flex items-center justify-center mx-auto mb-4 shadow-sm">
+                <ShieldAlert size={28} className="animate-bounce" />
               </div>
 
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-red-500/20 text-red-400 border border-red-500/30 mb-3">
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-red-100 text-red-700 mb-3">
                 Strike {cheatWarnings} of {MAX_TAB_SWITCHES}
               </div>
 
-              <h3 className="text-2xl font-black text-white mb-2">Tab Switch Detected!</h3>
+              <h3 className="text-xl font-extrabold text-[#0c1322] mb-1.5">Tab Switch Detected!</h3>
               
-              <p className="text-xs text-gray-300 mb-6 leading-relaxed">
-                You navigated away from or minimized the exam tab. Leaving this assessment window is strictly monitored.
+              <p className="text-xs text-slate-600 mb-5 leading-relaxed">
+                You navigated away from or minimized the exam tab. Navigating away is actively monitored by the proctor.
               </p>
 
-              <div className="bg-red-500/10 border border-red-500/25 rounded-2xl p-4 mb-6 text-left">
-                <p className="text-xs font-bold text-red-400 mb-1 flex items-center gap-1.5">
-                  <AlertCircle size={14} /> Warning Policy
+              <div className="bg-red-50 border border-red-200 rounded-2xl p-4 mb-5 text-left">
+                <p className="text-xs font-bold text-red-700 mb-1 flex items-center gap-1.5">
+                  <AlertCircle size={14} /> Proctoring Policy
                 </p>
-                <p className="text-xs text-gray-400 leading-relaxed">
-                  You have <span className="text-white font-bold">{Math.max(0, MAX_TAB_SWITCHES - cheatWarnings)}</span> warning(s) remaining. If you switch tabs again, your test will be <span className="text-red-400 font-bold">automatically terminated and submitted as-is</span>.
+                <p className="text-xs text-slate-600 leading-relaxed">
+                  You have <span className="text-[#0c1322] font-bold">{Math.max(0, MAX_TAB_SWITCHES - cheatWarnings)}</span> warning(s) remaining. On your 3rd strike, the test will be <span className="text-red-700 font-bold">automatically locked and submitted</span>.
                 </p>
               </div>
 
               <button
                 type="button"
                 onClick={() => setShowTabSwitchWarning(false)}
-                className="w-full py-3.5 px-6 rounded-xl bg-gradient-to-r from-red-600 to-orange-500 hover:opacity-95 text-white font-black text-xs uppercase tracking-wider transition-all shadow-lg shadow-red-600/30 hover:scale-[1.02] active:scale-[0.98]"
+                className="w-full py-3 px-5 rounded-xl bg-[#0c1322] hover:bg-[#182542] text-white font-bold text-xs uppercase tracking-wider transition-all shadow-md hover:scale-[1.01] active:scale-[0.98]"
               >
-                I Understand — Return to Exam
+                Return to Assessment
               </button>
             </motion.div>
           </div>

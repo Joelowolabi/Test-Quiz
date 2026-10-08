@@ -239,82 +239,107 @@ export default function DashboardPage() {
   };
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500">
-      <div className="flex justify-between items-end">
+    <div className="space-y-8 animate-in fade-in duration-500 font-sans">
+      {/* Top Header */}
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
-          <h1 className="text-4xl font-black text-white tracking-tight mb-2">Tests Overview</h1>
-          <p className="text-gray-400 font-medium">Manage your generated quizzes and view results.</p>
+          <div className="inline-flex items-center gap-2 bg-[#fffbeb] border border-[#fde68a] text-[#b45309] px-3.5 py-1 rounded-full text-xs font-bold uppercase tracking-wider mb-2.5 shadow-sm">
+            <Sparkles size={12} className="text-[#f59e0b]" /> Educator Studio
+          </div>
+          <h1 className="text-3xl sm:text-4xl font-extrabold text-[#0c1322] tracking-tight">
+            Tests Overview
+          </h1>
+          <p className="text-slate-500 font-medium text-sm mt-1">
+            Manage your quizzes, generate assessments with AI, and track live student performance.
+          </p>
         </div>
       </div>
 
-      <div className="grid md:grid-cols-3 gap-8">
-        {/* Create New Test Form */}
-        <div className="md:col-span-1 bg-[#111] p-6 rounded-[2rem] border border-white/10 shadow-[0_8px_30px_rgba(0,0,0,0.5)] h-fit relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-young-purple/10 blur-[50px] rounded-full pointer-events-none"></div>
-          
-          <div className="flex items-center gap-3 mb-6 relative z-10">
-            <div className="w-10 h-10 bg-young-purple/20 text-young-purple rounded-xl flex items-center justify-center border border-young-purple/30 shadow-[0_0_15px_rgba(99,102,241,0.2)]">
-              <Plus size={20} className="stroke-[3]" />
+      <div className="grid md:grid-cols-3 gap-8 items-start">
+        {/* Left Column: Create New Test Card */}
+        <div className="md:col-span-1 bg-white p-6 sm:p-7 rounded-[2rem] border border-slate-200/90 shadow-sm relative overflow-hidden">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-10 h-10 bg-[#0c1322] text-[#fbbf24] rounded-2xl flex items-center justify-center shadow-md shadow-slate-900/10">
+              <Plus size={18} className="stroke-[3]" />
             </div>
-            <h2 className="text-xl font-bold text-white">New Test</h2>
+            <div>
+              <h2 className="text-lg font-extrabold text-[#0c1322]">New Assessment</h2>
+              <p className="text-xs text-slate-500 font-medium">Create or auto-generate quiz</p>
+            </div>
           </div>
 
-          <form onSubmit={handleGenerate} className="space-y-5 relative z-10">
+          <form onSubmit={handleGenerate} className="space-y-4">
             <div>
-              <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Test Title</label>
+              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Assessment Title</label>
               <input 
                 type="text" 
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                className="w-full px-4 py-3 bg-white/5 text-white border border-white/10 rounded-xl focus:border-young-purple focus:ring-2 focus:ring-young-purple/20 outline-none transition-all placeholder-gray-600 font-medium"
+                className="w-full px-3.5 py-2.5 bg-slate-50/70 text-slate-900 border border-slate-200 rounded-xl focus:bg-white focus:border-[#0c1322] focus:ring-2 focus:ring-[#0c1322]/10 outline-none transition-all placeholder:text-slate-400 font-medium text-sm"
                 placeholder="e.g., Photosynthesis Basics"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Source Type</label>
-              <div className="flex bg-black/40 p-1.5 rounded-xl border border-white/5 flex-wrap gap-1">
+              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Source Material</label>
+              <div className="grid grid-cols-4 bg-slate-100 p-1 rounded-xl gap-1">
                 <button
                   type="button"
                   onClick={() => setSourceType("text")}
-                  className={`flex-1 min-w-[60px] flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-bold transition-all ${sourceType === 'text' ? 'bg-[#2a2a2a] shadow-md text-white border border-white/10' : 'text-gray-500 hover:text-gray-300 hover:bg-white/5'}`}
+                  className={`py-1.5 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1 ${
+                    sourceType === 'text' 
+                      ? 'bg-white text-[#0c1322] shadow-sm' 
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
                 >
-                  <FileText size={14} /> Text
+                  <FileText size={12} /> Text
                 </button>
                 <button
                   type="button"
                   onClick={() => setSourceType("url")}
-                  className={`flex-1 min-w-[60px] flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-bold transition-all ${sourceType === 'url' ? 'bg-[#2a2a2a] shadow-md text-white border border-white/10' : 'text-gray-500 hover:text-gray-300 hover:bg-white/5'}`}
+                  className={`py-1.5 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1 ${
+                    sourceType === 'url' 
+                      ? 'bg-white text-[#0c1322] shadow-sm' 
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
                 >
-                  <LinkIcon size={14} /> URL
+                  <LinkIcon size={12} /> URL
                 </button>
                 <button
                   type="button"
                   onClick={() => setSourceType("file")}
-                  className={`flex-1 min-w-[60px] flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-bold transition-all ${sourceType === 'file' ? 'bg-[#2a2a2a] shadow-md text-white border border-white/10' : 'text-gray-500 hover:text-gray-300 hover:bg-white/5'}`}
+                  className={`py-1.5 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1 ${
+                    sourceType === 'file' 
+                      ? 'bg-white text-[#0c1322] shadow-sm' 
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
                 >
-                  <FileText size={14} /> PDF/File
+                  <FileText size={12} /> PDF
                 </button>
                 <button
                   type="button"
                   onClick={() => setSourceType("manual")}
-                  className={`flex-1 min-w-[60px] flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-bold transition-all ${sourceType === 'manual' ? 'bg-[#2a2a2a] shadow-md text-white border border-white/10' : 'text-gray-500 hover:text-gray-300 hover:bg-white/5'}`}
+                  className={`py-1.5 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1 ${
+                    sourceType === 'manual' 
+                      ? 'bg-white text-[#0c1322] shadow-sm' 
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
                 >
-                  <Plus size={14} /> Manual
+                  <Plus size={12} /> Manual
                 </button>
               </div>
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">
-                {sourceType === 'text' ? 'Paste Article/Notes' : sourceType === 'url' ? 'Paste URLs (One per line)' : sourceType === 'file' ? 'Upload PDF/Doc' : 'Create Questions'}
+              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                {sourceType === 'text' ? 'Paste Notes or Lecture' : sourceType === 'url' ? 'Paste Article URLs' : sourceType === 'file' ? 'Upload Slide Deck / PDF' : 'Draft Questions'}
               </label>
               {sourceType === 'manual' ? (
-                <div className="space-y-4 max-h-[350px] overflow-y-auto pr-2 custom-scrollbar">
+                <div className="space-y-3 max-h-[320px] overflow-y-auto pr-1">
                   {manualQuestions.map((q, qIndex) => (
-                    <div key={qIndex} className="p-4 bg-white/5 border border-white/10 rounded-xl space-y-3">
+                    <div key={qIndex} className="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-2.5">
                       <div className="flex justify-between items-center">
-                        <span className="text-xs font-bold text-young-purple">Question {qIndex + 1}</span>
+                        <span className="text-xs font-extrabold text-[#0c1322]">Question {qIndex + 1}</span>
                         {manualQuestions.length > 1 && (
                           <button 
                             type="button" 
@@ -323,22 +348,22 @@ export default function DashboardPage() {
                               updated.splice(qIndex, 1);
                               setManualQuestions(updated);
                             }}
-                            className="text-red-400 hover:text-red-300 text-xs font-bold"
+                            className="text-red-500 hover:text-red-700 text-xs font-bold"
                           >
                             Remove
                           </button>
                         )}
                       </div>
                       <input 
-                        type="text"
+                        type="text" 
                         value={q.question}
                         onChange={(e) => {
                           const updated = [...manualQuestions];
                           updated[qIndex].question = e.target.value;
                           setManualQuestions(updated);
                         }}
-                        className="w-full px-3 py-2 bg-black/40 text-white border border-white/5 rounded-lg focus:border-young-purple outline-none text-sm placeholder-gray-700"
-                        placeholder="Type question here..."
+                        className="w-full px-3 py-2 bg-white text-slate-900 border border-slate-200 rounded-lg focus:border-[#0c1322] outline-none text-xs placeholder:text-slate-400 font-medium"
+                        placeholder="Type question text..."
                       />
                       <div className="grid grid-cols-2 gap-2">
                         {q.options.map((opt, oIndex) => (
@@ -351,13 +376,12 @@ export default function DashboardPage() {
                               updated[qIndex].options[oIndex] = e.target.value;
                               setManualQuestions(updated);
                             }}
-                            className="w-full px-3 py-2 bg-black/40 text-white border border-white/5 rounded-lg focus:border-young-purple outline-none text-xs placeholder-gray-700"
+                            className="w-full px-2.5 py-1.5 bg-white text-slate-900 border border-slate-200 rounded-lg focus:border-[#0c1322] outline-none text-xs placeholder:text-slate-400 font-medium"
                             placeholder={`Option ${oIndex + 1}`}
                           />
                         ))}
                       </div>
                       <div>
-                        <label className="text-xs font-bold text-gray-600 mb-1 block">Correct Answer</label>
                         <select
                           value={q.correctAnswer}
                           onChange={(e) => {
@@ -365,11 +389,11 @@ export default function DashboardPage() {
                             updated[qIndex].correctAnswer = e.target.value;
                             setManualQuestions(updated);
                           }}
-                          className="w-full px-3 py-2 bg-black/40 text-white border border-white/5 rounded-lg focus:border-young-purple outline-none text-xs"
+                          className="w-full px-2.5 py-1.5 bg-white text-slate-900 border border-slate-200 rounded-lg focus:border-[#0c1322] outline-none text-xs font-semibold"
                         >
                           <option value="">Select Correct Answer</option>
                           {q.options.map((opt, oIndex) => (
-                            <option key={oIndex} value={opt} className="bg-[#1a1a1a]">{opt || `Option ${oIndex + 1}`}</option>
+                            <option key={oIndex} value={opt}>{opt || `Option ${oIndex + 1}`}</option>
                           ))}
                         </select>
                       </div>
@@ -378,109 +402,88 @@ export default function DashboardPage() {
                   <button
                     type="button"
                     onClick={() => setManualQuestions([...manualQuestions, { question: '', options: ['', '', '', ''], correctAnswer: '' }])}
-                    className="w-full py-2 bg-white/5 hover:bg-white/10 text-white rounded-lg text-xs font-bold border border-white/10 border-dashed transition-colors"
+                    className="w-full py-2 bg-slate-50 hover:bg-slate-100 text-slate-700 rounded-lg text-xs font-bold border border-slate-200 border-dashed transition-colors"
                   >
-                    + Add Question
+                    + Add Another Question
                   </button>
                 </div>
               ) : sourceType === 'text' ? (
                 <textarea 
                   value={sourceContent}
                   onChange={(e) => setSourceContent(e.target.value)}
-                  className="w-full px-4 py-3 bg-white/5 text-white border border-white/10 rounded-xl focus:border-young-purple focus:ring-2 focus:ring-young-purple/20 outline-none transition-all resize-none h-32 placeholder-gray-600 font-medium"
-                  placeholder="Paste the content here..."
+                  className="w-full px-3.5 py-2.5 bg-slate-50/70 text-slate-900 border border-slate-200 rounded-xl focus:bg-white focus:border-[#0c1322] focus:ring-2 focus:ring-[#0c1322]/10 outline-none transition-all resize-none h-28 placeholder:text-slate-400 font-medium text-xs leading-relaxed"
+                  placeholder="Paste lecture notes, articles, or curriculum syllabus here..."
                 />
               ) : sourceType === 'url' ? (
                 <textarea 
                   value={sourceContent}
                   onChange={(e) => setSourceContent(e.target.value)}
-                  className="w-full px-4 py-3 bg-white/5 text-white border border-white/10 rounded-xl focus:border-young-purple focus:ring-2 focus:ring-young-purple/20 outline-none transition-all resize-none h-32 placeholder-gray-600 font-medium leading-relaxed"
-                  placeholder="https://example.com/article1&#10;https://example.com/article2"
+                  className="w-full px-3.5 py-2.5 bg-slate-50/70 text-slate-900 border border-slate-200 rounded-xl focus:bg-white focus:border-[#0c1322] focus:ring-2 focus:ring-[#0c1322]/10 outline-none transition-all resize-none h-28 placeholder:text-slate-400 font-medium text-xs leading-relaxed"
+                  placeholder="https://en.wikipedia.org/wiki/Photosynthesis&#10;https://edu-resource.org/notes"
                 />
               ) : (
-                <input
-                  type="file"
-                  accept="application/pdf, text/plain"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) {
-                      const reader = new FileReader();
-                      reader.onloadend = () => {
-                        const base64 = reader.result?.toString().split(',')[1];
-                        if (base64) {
-                          setSourceContent(JSON.stringify({ fileBase64: base64, mimeType: file.type }));
-                        }
-                      };
-                      reader.readAsDataURL(file);
-                    }
-                  }}
-                  className="w-full px-4 py-3 bg-white/5 text-white border border-white/10 rounded-xl outline-none transition-all file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-bold file:bg-young-purple/20 file:text-young-purple hover:file:bg-young-purple/30 text-sm"
-                />
+                <div className="p-4 bg-slate-50/70 border border-dashed border-slate-300 rounded-xl text-center">
+                  <input
+                    type="file"
+                    accept="application/pdf, text/plain"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        const reader = new FileReader();
+                        reader.onloadend = () => {
+                          const base64 = reader.result?.toString().split(',')[1];
+                          if (base64) {
+                            setSourceContent(JSON.stringify({ fileBase64: base64, mimeType: file.type }));
+                          }
+                        };
+                        reader.readAsDataURL(file);
+                      }
+                    }}
+                    className="w-full text-xs text-slate-600 file:mr-3 file:py-1.5 file:px-3 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-[#0c1322] file:text-white hover:file:bg-[#182542] cursor-pointer"
+                  />
+                  <p className="text-[11px] text-slate-400 mt-2 font-medium">Supports PDF slides or text files up to 10MB</p>
+                </div>
               )}
             </div>
 
-            <div className="space-y-5">
-              <div>
-                <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Difficulty</label>
-                <select
-                  value={difficulty}
-                  onChange={(e) => setDifficulty(e.target.value)}
-                  className="w-full px-4 py-3 bg-white/5 text-white border border-white/10 rounded-xl focus:border-young-purple focus:ring-2 focus:ring-young-purple/20 outline-none transition-all font-medium"
-                >
-                  <option value="Very Easy" className="bg-[#1a1a1a]">Very Easy</option>
-                  <option value="Easy" className="bg-[#1a1a1a]">Easy</option>
-                  <option value="Medium" className="bg-[#1a1a1a]">Medium</option>
-                  <option value="Hard" className="bg-[#1a1a1a]">Hard</option>
-                  <option value="Expert" className="bg-[#1a1a1a]">Expert</option>
-                  <option value="Master (Insane)" className="bg-[#1a1a1a]">Master (Insane)</option>
-                </select>
-              </div>
-              
-              <div>
-                <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Question Type</label>
-                <select
-                  value={questionType}
-                  onChange={(e) => setQuestionType(e.target.value)}
-                  className="w-full px-4 py-3 bg-white/5 text-white border border-white/10 rounded-xl focus:border-young-purple focus:ring-2 focus:ring-young-purple/20 outline-none transition-all font-medium"
-                >
-                  <option value="Multiple Choice" className="bg-[#1a1a1a]">Multiple Choice</option>
-                  <option value="True/False" className="bg-[#1a1a1a]">True/False</option>
-                  <option value="Mixed" className="bg-[#1a1a1a]">Mixed</option>
-                  <option value="Fill in the Blanks" className="bg-[#1a1a1a]">Fill in the Blanks</option>
-                  <option value="Scenario-based" className="bg-[#1a1a1a]">Scenario-based</option>
-                  <option value="Definition matching" className="bg-[#1a1a1a]">Definition matching</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Folder</label>
-                <select
-                  value={targetFolder || ""}
-                  onChange={(e) => setTargetFolder(e.target.value || null)}
-                  className="w-full px-4 py-3 bg-white/5 text-white border border-white/10 rounded-xl focus:border-young-purple focus:ring-2 focus:ring-young-purple/20 outline-none transition-all font-medium"
-                >
-                  <option value="" className="bg-[#1a1a1a]">No Folder</option>
-                  {folders.map((folder) => (
-                    <option key={folder.id} value={folder.id} className="bg-[#1a1a1a]">{folder.name}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Status</label>
-                <select
-                  value={targetStatus}
-                  onChange={(e) => setTargetStatus(e.target.value)}
-                  className="w-full px-4 py-3 bg-white/5 text-white border border-white/10 rounded-xl focus:border-young-purple focus:ring-2 focus:ring-young-purple/20 outline-none transition-all font-medium"
-                >
-                  <option value="published" className="bg-[#1a1a1a]">Published</option>
-                  <option value="draft" className="bg-[#1a1a1a]">Draft</option>
-                </select>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-3.5">
+              <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Total Qs (Max 80)</label>
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Difficulty</label>
+                  <select
+                    value={difficulty}
+                    onChange={(e) => setDifficulty(e.target.value)}
+                    className="w-full px-3 py-2 bg-slate-50/70 text-slate-900 border border-slate-200 rounded-xl focus:bg-white focus:border-[#0c1322] outline-none text-xs font-medium"
+                  >
+                    <option value="Very Easy">Very Easy</option>
+                    <option value="Easy">Easy</option>
+                    <option value="Medium">Medium</option>
+                    <option value="Hard">Hard</option>
+                    <option value="Expert">Expert</option>
+                    <option value="Master (Insane)">Master (Insane)</option>
+                  </select>
+                </div>
+                
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Question Type</label>
+                  <select
+                    value={questionType}
+                    onChange={(e) => setQuestionType(e.target.value)}
+                    className="w-full px-3 py-2 bg-slate-50/70 text-slate-900 border border-slate-200 rounded-xl focus:bg-white focus:border-[#0c1322] outline-none text-xs font-medium"
+                  >
+                    <option value="Multiple Choice">Multiple Choice</option>
+                    <option value="True/False">True/False</option>
+                    <option value="Mixed">Mixed</option>
+                    <option value="Fill in the Blanks">Fill in the Blanks</option>
+                    <option value="Scenario-based">Scenario-based</option>
+                    <option value="Definition matching">Definition matching</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Questions (Max 80)</label>
                   <input 
                     type="number" 
                     min="1" max="80"
@@ -489,30 +492,30 @@ export default function DashboardPage() {
                       const val = parseInt(e.target.value) || 1;
                       setQuestionCount(Math.min(Math.max(val, 1), 80));
                     }}
-                    className="w-full px-4 py-3 bg-white/5 text-white border border-white/10 rounded-xl focus:border-young-purple focus:ring-2 focus:ring-young-purple/20 outline-none transition-all font-medium"
+                    className="w-full px-3 py-2 bg-slate-50/70 text-slate-900 border border-slate-200 rounded-xl focus:bg-white focus:border-[#0c1322] outline-none text-xs font-medium"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Time Limit (Mins)</label>
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Time Limit</label>
                   <select
                     value={timeLimit}
                     onChange={(e) => setTimeLimit(parseInt(e.target.value))}
-                    className="w-full px-4 py-3 bg-white/5 text-white border border-white/10 rounded-xl focus:border-young-purple focus:ring-2 focus:ring-young-purple/20 outline-none transition-all font-medium"
+                    className="w-full px-3 py-2 bg-slate-50/70 text-slate-900 border border-slate-200 rounded-xl focus:bg-white focus:border-[#0c1322] outline-none text-xs font-medium"
                   >
-                    <option value={0} className="bg-[#1a1a1a]">No Limit</option>
-                    <option value={5} className="bg-[#1a1a1a]">5 Minutes</option>
-                    <option value={10} className="bg-[#1a1a1a]">10 Minutes</option>
-                    <option value={15} className="bg-[#1a1a1a]">15 Minutes</option>
-                    <option value={30} className="bg-[#1a1a1a]">30 Minutes</option>
-                    <option value={45} className="bg-[#1a1a1a]">45 Minutes</option>
-                    <option value={60} className="bg-[#1a1a1a]">60 Minutes</option>
+                    <option value={0}>No Limit</option>
+                    <option value={5}>5 Mins</option>
+                    <option value={10}>10 Mins</option>
+                    <option value={15}>15 Mins</option>
+                    <option value={30}>30 Mins</option>
+                    <option value={45}>45 Mins</option>
+                    <option value={60}>60 Mins</option>
                   </select>
                 </div>
               </div>
             </div>
 
             {error && (
-              <div className="text-red-400 text-xs font-bold bg-red-400/10 p-3 rounded-xl border border-red-400/20">
+              <div className="text-red-700 text-xs font-bold bg-red-50 p-2.5 rounded-xl border border-red-200">
                 {error}
               </div>
             )}
@@ -520,32 +523,32 @@ export default function DashboardPage() {
             <button 
               type="submit" 
               disabled={isGenerating}
-              className="w-full py-4 mt-2 bg-gradient-to-r from-young-purple to-[#818cf8] text-white rounded-xl font-bold flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(99,102,241,0.4)] hover:shadow-[0_0_30px_rgba(99,102,241,0.6)] hover:scale-[1.02] transition-all disabled:opacity-70 disabled:hover:scale-100"
+              className="w-full py-3.5 mt-2 bg-[#0c1322] hover:bg-[#182542] text-white rounded-xl font-bold flex items-center justify-center gap-2 shadow-md shadow-slate-900/10 hover:scale-[1.01] active:scale-95 transition-all disabled:opacity-60 text-sm"
             >
               {isGenerating ? (
-                <><Loader2 size={20} className="animate-spin" /> Generating {questionCount} Questions...</>
+                <><Loader2 size={16} className="animate-spin text-[#fbbf24]" /> Generating {questionCount} Questions...</>
               ) : (
-                <><Sparkles size={20} /> {sourceType === 'manual' ? 'Create Test' : 'Generate Test'}</>
+                <><Sparkles size={16} className="text-[#fbbf24]" /> {sourceType === 'manual' ? 'Create Quiz' : `Generate Quiz (${questionCount} Qs)`}</>
               )}
             </button>
           </form>
         </div>
 
-        {/* Existing Tests List */}
-        <div className="md:col-span-2">
-          {/* Folders, Status Filters & Search Bar */}
-          <div className="mb-6 space-y-4">
-            {/* Status Tabs and Search Input */}
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-white/5 pb-4">
-              <div className="flex gap-2">
+        {/* Right Column: Existing Tests List */}
+        <div className="md:col-span-2 space-y-5">
+          {/* Controls: Status Tabs, Search, and Folders */}
+          <div className="bg-white p-4 rounded-2xl border border-slate-200/90 shadow-sm space-y-3.5">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+              {/* Segmented Status Filter */}
+              <div className="flex bg-slate-100 p-1 rounded-xl">
                 {['published', 'draft', 'archived'].map((status) => (
                   <button
                     key={status}
                     onClick={() => setSelectedStatus(status)}
-                    className={`px-3.5 py-1.5 rounded-lg font-bold text-xs uppercase tracking-wider transition-all ${
+                    className={`px-3 py-1.5 rounded-lg font-bold text-xs uppercase tracking-wider transition-all ${
                       selectedStatus === status 
-                        ? 'bg-young-purple text-white shadow-sm' 
-                        : 'bg-white/5 text-gray-400 hover:bg-white/10 hover:text-white'
+                        ? 'bg-white text-[#0c1322] shadow-sm' 
+                        : 'text-slate-600 hover:text-slate-900'
                     }`}
                   >
                     {status}
@@ -554,26 +557,26 @@ export default function DashboardPage() {
               </div>
 
               {/* Search Bar */}
-              <div className="relative w-full sm:w-64">
-                <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
+              <div className="relative w-full sm:w-60">
+                <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                 <input
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Search quizzes..."
-                  className="w-full pl-9 pr-3 py-1.5 bg-white/5 border border-white/10 rounded-xl text-xs text-white focus:border-young-purple outline-none placeholder:text-gray-600"
+                  className="w-full pl-9 pr-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:bg-white focus:border-[#0c1322] outline-none placeholder:text-slate-400 font-medium"
                 />
               </div>
             </div>
 
-            {/* Folders List */}
-            <div className="flex gap-2 overflow-x-auto pb-2">
+            {/* Folders Filter */}
+            <div className="flex items-center gap-2 overflow-x-auto pb-1 pt-1 border-t border-slate-100">
               <button
                 onClick={() => setSelectedFolder(null)}
-                className={`px-4 py-1.5 rounded-full font-medium text-xs whitespace-nowrap transition-all ${
+                className={`px-3.5 py-1 rounded-full text-xs font-bold whitespace-nowrap transition-all ${
                   selectedFolder === null 
-                    ? 'bg-white/15 text-white font-bold' 
-                    : 'bg-white/5 text-gray-400 hover:bg-white/10'
+                    ? 'bg-[#0c1322] text-white shadow-sm' 
+                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                 }`}
               >
                 All Quizzes
@@ -582,35 +585,35 @@ export default function DashboardPage() {
                 <button
                   key={folder.id}
                   onClick={() => setSelectedFolder(folder.id)}
-                  className={`px-4 py-1.5 rounded-full font-medium text-xs whitespace-nowrap transition-all ${
+                  className={`px-3.5 py-1 rounded-full text-xs font-semibold whitespace-nowrap transition-all ${
                     selectedFolder === folder.id 
-                      ? 'bg-white/15 text-white font-bold' 
-                      : 'bg-white/5 text-gray-400 hover:bg-white/10'
+                      ? 'bg-[#0c1322] text-white shadow-sm' 
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                   }`}
                 >
                   📁 {folder.name}
                 </button>
               ))}
               
-              {/* Create Folder Button */}
+              {/* Create Folder Trigger */}
               {isCreatingFolder ? (
                 <div className="flex items-center gap-1.5">
                   <input
                     type="text"
                     value={newFolderName}
                     onChange={(e) => setNewFolderName(e.target.value)}
-                    className="px-2.5 py-1 bg-white/5 text-white border border-white/10 rounded-lg text-xs focus:border-young-purple outline-none"
+                    className="px-2.5 py-1 bg-white text-slate-900 border border-slate-300 rounded-lg text-xs focus:border-[#0c1322] outline-none"
                     placeholder="Folder name..."
                   />
                   <button
                     onClick={handleCreateFolder}
-                    className="p-1 bg-young-purple text-white rounded-lg hover:bg-young-purple/80"
+                    className="p-1 bg-[#0c1322] text-white rounded-lg hover:bg-[#182542]"
                   >
-                    <Plus size={14} />
+                    <Plus size={13} />
                   </button>
                   <button
                     onClick={() => setIsCreatingFolder(false)}
-                    className="p-1 bg-white/5 text-gray-400 rounded-lg hover:bg-white/10"
+                    className="p-1 text-slate-400 hover:text-slate-700"
                   >
                     ✕
                   </button>
@@ -618,7 +621,7 @@ export default function DashboardPage() {
               ) : (
                 <button
                   onClick={() => setIsCreatingFolder(true)}
-                  className="px-3 py-1.5 rounded-full font-medium text-xs whitespace-nowrap bg-white/5 text-young-purple hover:bg-white/10 flex items-center gap-1"
+                  className="px-3 py-1 rounded-full text-xs font-bold text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 flex items-center gap-1 transition-colors"
                 >
                   <Plus size={12} /> New Folder
                 </button>
@@ -626,15 +629,20 @@ export default function DashboardPage() {
             </div>
           </div>
 
+          {/* Test Cards Grid */}
           {loading ? (
-            <div className="flex justify-center py-20"><Loader2 className="animate-spin text-young-purple" size={40} /></div>
+            <div className="flex justify-center py-20">
+              <Loader2 className="animate-spin text-[#0c1322]" size={36} />
+            </div>
           ) : tests.length === 0 ? (
-            <div className="text-center py-20 bg-[#111] rounded-[2rem] border border-white/5 border-dashed">
-              <div className="w-16 h-16 bg-[#222] rounded-full flex items-center justify-center mx-auto mb-4 text-gray-500 border border-white/10 shadow-inner">
-                <FileText size={32} />
+            <div className="text-center py-16 bg-white rounded-[2rem] border border-dashed border-slate-300 p-8 shadow-sm">
+              <div className="w-14 h-14 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-3 text-slate-400">
+                <FileText size={28} />
               </div>
-              <h3 className="text-xl font-bold text-white mb-1">No quizzes yet</h3>
-              <p className="text-gray-500 font-medium text-sm">Generate your first AI quiz on the left to get started.</p>
+              <h3 className="text-lg font-bold text-[#0c1322] mb-1">No quizzes generated yet</h3>
+              <p className="text-slate-500 font-medium text-xs max-w-sm mx-auto">
+                Paste notes, URLs, or upload a PDF using the generator on the left to create your first classroom quiz.
+              </p>
             </div>
           ) : (
             <div className="grid sm:grid-cols-2 gap-4">
@@ -645,55 +653,63 @@ export default function DashboardPage() {
                   const isCopied = copiedPinId === test.id;
 
                   return (
-                    <div key={test.id} className="bg-[#111] p-6 rounded-3xl border border-white/5 hover:border-young-purple/30 hover:shadow-[0_0_30px_rgba(99,102,241,0.15)] hover:-translate-y-1 transition-all group flex flex-col relative overflow-hidden">
-                      <div className="absolute top-0 right-0 w-24 h-24 bg-young-purple/5 rounded-full blur-[30px] group-hover:bg-young-purple/10 transition-colors pointer-events-none"></div>
-                      
-                      <div className="flex justify-between items-start gap-2 mb-2">
-                        <h3 className="font-bold text-base text-white line-clamp-1 group-hover:text-young-purple transition-colors">{test.title}</h3>
-                        <button
-                          onClick={() => handleDeleteTest(test.id)}
-                          className="opacity-0 group-hover:opacity-100 p-1.5 text-gray-500 hover:text-red-400 hover:bg-red-400/10 rounded-lg transition-all"
-                          title="Delete quiz"
-                        >
-                          <Trash2 size={14} />
-                        </button>
-                      </div>
+                    <div 
+                      key={test.id} 
+                      className="bg-white p-5 sm:p-6 rounded-[1.75rem] border border-slate-200/90 hover:border-slate-300 hover:shadow-md transition-all group flex flex-col justify-between"
+                    >
+                      <div>
+                        {/* Title & Delete Action */}
+                        <div className="flex justify-between items-start gap-2 mb-2">
+                          <h3 className="font-extrabold text-base text-[#0c1322] line-clamp-1 group-hover:text-amber-600 transition-colors">
+                            {test.title}
+                          </h3>
+                          <button
+                            onClick={() => handleDeleteTest(test.id)}
+                            className="opacity-0 group-hover:opacity-100 p-1 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
+                            title="Delete quiz"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
 
-                      <div className="flex flex-wrap items-center gap-2 mb-4">
-                        <p className="text-[11px] text-gray-500 font-medium">
-                          {new Date(test.created_at).toLocaleDateString()}
-                        </p>
-                        {test.time_limit > 0 && (
-                          <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-white/5 text-gray-400 border border-white/10">
-                            {test.time_limit} Mins
+                        {/* Metadata Tags */}
+                        <div className="flex flex-wrap items-center gap-2 mb-4">
+                          <span className="text-[11px] text-slate-500 font-medium">
+                            {new Date(test.created_at).toLocaleDateString()}
                           </span>
-                        )}
+                          {test.time_limit > 0 && (
+                            <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200/60">
+                              {test.time_limit} Mins
+                            </span>
+                          )}
 
-                        {/* Quick PIN Badge with Copy Button */}
-                        <button
-                          onClick={() => copyTestPin(test.id)}
-                          className={`text-[11px] font-mono font-bold px-2.5 py-0.5 rounded-lg border flex items-center gap-1 transition-all ${
-                            isCopied 
-                              ? 'bg-young-green/20 text-young-green border-young-green/30' 
-                              : 'bg-black/50 text-young-green border-young-green/20 hover:border-young-green/50'
-                          }`}
-                          title="Click to copy 6-digit PIN"
-                        >
-                          <KeyRound size={10} /> PIN: {formatPin(testPin)}
-                          {isCopied ? <CheckCircle2 size={10} /> : <Copy size={10} />}
-                        </button>
+                          {/* 6-Digit PIN Badge with Click-to-Copy */}
+                          <button
+                            onClick={() => copyTestPin(test.id)}
+                            className={`text-[11px] font-mono font-bold px-2.5 py-0.5 rounded-lg border flex items-center gap-1.5 transition-all ${
+                              isCopied 
+                                ? 'bg-emerald-50 text-emerald-800 border-emerald-300' 
+                                : 'bg-[#fffbeb] text-[#92400e] border-[#fde68a] hover:bg-[#fef3c7]'
+                            }`}
+                            title="Click to copy 6-digit PIN"
+                          >
+                            <KeyRound size={11} className="text-[#d97706]" /> PIN: {formatPin(testPin)}
+                            {isCopied ? <CheckCircle2 size={11} className="text-emerald-600" /> : <Copy size={11} />}
+                          </button>
+                        </div>
                       </div>
                       
-                      <div className="mt-auto pt-3 border-t border-white/5 flex items-center justify-between z-10">
-                        <span className="text-xs font-bold text-young-orange bg-young-orange/10 border border-young-orange/20 px-2.5 py-1 rounded-lg">
+                      {/* Submissions & Analytics Link */}
+                      <div className="mt-4 pt-3.5 border-t border-slate-100 flex items-center justify-between">
+                        <span className="text-xs font-bold text-slate-700 bg-slate-100 px-2.5 py-1 rounded-lg">
                           {test.submissions?.[0]?.count || 0} Submissions
                         </span>
                         
                         <Link 
                           href={`/dashboard/test/${test.id}`}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/5 hover:bg-young-purple text-xs font-bold text-gray-300 hover:text-white transition-all shadow-sm"
+                          className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[#0c1322] hover:bg-[#182542] text-xs font-bold text-white transition-all shadow-sm hover:scale-105 active:scale-95"
                         >
-                          Analytics <ArrowRight size={14} />
+                          Analytics <ArrowRight size={13} />
                         </Link>
                       </div>
                     </div>
