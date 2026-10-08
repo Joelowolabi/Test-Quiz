@@ -1,12 +1,16 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Manrope } from "next/font/google";
 import "./globals.css";
 
-const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
+const manrope = Manrope({ 
+  subsets: ["latin"], 
+  weight: ["300", "400", "500", "600", "700", "800"],
+  variable: "--font-manrope" 
+});
 
 export const metadata: Metadata = {
-  title: "Young&Test | Student Quiz Platform",
-  description: "A fun and dynamic platform for student quizzes.",
+  title: "Young&Test | AI-Powered Student Quiz Platform",
+  description: "Create engaging, proctored quizzes in seconds. Students join instantly with a 6-digit PIN.",
 };
 
 export default function RootLayout({
@@ -15,8 +19,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body className={`${inter.variable} font-sans antialiased bg-white`}>
+    <html lang="en" className="scroll-smooth">
+      <body className={`${manrope.variable} font-sans antialiased bg-[#ffffff] text-slate-900 selection:bg-[#fbbf24] selection:text-slate-900`}>
         {children}
       </body>
     </html>

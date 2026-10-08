@@ -10,28 +10,24 @@
 body {
   color: var(--foreground);
   background: var(--background);
-  font-family: var(--font-inter), sans-serif;
+  font-family: var(--font-manrope), sans-serif;
 }
 
-/* Custom utilities for the energetic styling */
-.glass-card {
-  @apply bg-white/80 backdrop-blur-md border border-white/20 shadow-xl rounded-2xl;
+@keyframes marquee {
+  0% { transform: translateX(0%); }
+  100% { transform: translateX(-50%); }
 }
 
-.heading-primary {
-  @apply text-5xl md:text-7xl font-extrabold tracking-tight;
+.animate-marquee {
+  display: flex;
+  width: 200%;
+  animation: marquee 20s linear infinite;
 }
 
-.heading-secondary {
-  @apply text-3xl md:text-5xl font-bold tracking-tight;
-}
-
-.btn-primary {
-  @apply bg-young-black text-white px-8 py-3 rounded-full font-semibold hover:bg-young-green hover:text-young-black transition-all duration-300 transform hover:scale-105 active:scale-95 flex items-center justify-center gap-2;
-}
-
-.btn-secondary {
-  @apply bg-white text-young-black border-2 border-young-black px-8 py-3 rounded-full font-semibold hover:bg-young-black hover:text-white transition-all duration-300 transform hover:scale-105 active:scale-95 flex items-center justify-center gap-2;
+.animate-marquee-reverse {
+  display: flex;
+  width: 200%;
+  animation: marquee 24s linear infinite reverse;
 }
 
 /* Fun animations */

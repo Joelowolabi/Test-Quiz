@@ -3,7 +3,8 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
-import { Lock, Loader2 } from "lucide-react";
+import Link from "next/link";
+import { Lock, Loader2, Zap } from "lucide-react";
 
 export default function DashboardLayout({
   children,
@@ -77,21 +78,23 @@ export default function DashboardLayout({
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] relative text-gray-200">
-      {/* Subtle Grid Background */}
-      <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none"></div>
-
+    <div className="min-h-screen bg-[#f8fafc] relative text-slate-800 font-sans selection:bg-[#fbbf24] selection:text-slate-900">
       <nav className="p-4 md:p-6 sticky top-0 z-50 pointer-events-none">
-        <div className="max-w-6xl mx-auto flex justify-between items-center backdrop-blur-xl bg-black/40 border border-white/10 rounded-full px-6 py-4 shadow-2xl pointer-events-auto">
-          <div className="font-black text-xl tracking-tighter flex items-center gap-2">
-            <div className="w-8 h-8 rounded-full bg-young-purple flex items-center justify-center text-white shadow-[0_0_15px_rgba(99,102,241,0.5)]">
-              <Lock size={14} />
+        <div className="max-w-6xl mx-auto flex justify-between items-center backdrop-blur-xl bg-white/90 border border-slate-200 rounded-full px-6 py-3.5 shadow-sm pointer-events-auto">
+          <Link href="/" className="font-black text-lg tracking-tight flex items-center gap-2 text-[#0c1322]">
+            <div className="w-8 h-8 rounded-full bg-[#0c1322] flex items-center justify-center text-white shadow-sm">
+              <Zap size={15} className="text-[#fbbf24] fill-[#fbbf24]" />
             </div>
-            <span><span className="text-white">YOUNG</span><span className="text-gray-500">&amp;</span><span className="text-young-purple">TEST</span></span>
-          </div>
+            <span>
+              Young<span className="text-[#f59e0b]">&amp;</span>Test
+            </span>
+            <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full ml-1">
+              Teacher
+            </span>
+          </Link>
           <button 
             onClick={handleSignOut}
-            className="text-sm font-bold px-5 py-2 rounded-full bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white transition-colors border border-white/5"
+            className="text-xs font-bold px-4 py-2 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 hover:text-slate-900 transition-colors border border-slate-200/60"
           >
             Sign Out
           </button>

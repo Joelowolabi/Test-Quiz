@@ -3,18 +3,36 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowRight, Sparkles, Zap, Users, ShieldCheck, KeyRound, Loader2, BarChart3, CheckCircle2 } from "lucide-react";
-import { motion } from "framer-motion";
+import { 
+  ArrowRight, 
+  Sparkles, 
+  Zap, 
+  Users, 
+  ShieldCheck, 
+  KeyRound, 
+  Loader2, 
+  BarChart3, 
+  CheckCircle2, 
+  FileText, 
+  Clock, 
+  ChevronDown, 
+  ShieldAlert,
+  Send,
+  HelpCircle,
+  GraduationCap
+} from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 
 export default function LandingPage() {
   const router = useRouter();
   const [pin, setPin] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [activeFaq, setActiveFaq] = useState<number | null>(0);
 
   const handleJoinQuiz = async (e: React.FormEvent) => {
     e.preventDefault();
-    const cleanPin = pin.trim();
+    const cleanPin = pin.trim().replace(/\s+/g, "");
     if (!cleanPin) {
       setError("Please enter a 6-digit Quiz PIN");
       return;
@@ -38,216 +56,677 @@ export default function LandingPage() {
     }
   };
 
+  const faqs = [
+    {
+      q: "How do students join a quiz without creating an account?",
+      a: "Students never need to sign up or remember passwords. Simply share the 6-digit PIN generated for your quiz. Students enter the PIN on any phone, tablet, or browser to join immediately."
+    },
+    {
+      q: "How does the anti-tab switching proctoring work?",
+      a: "Young & Test uses dual focus tracking (visibility and blur events). If a student leaves the quiz tab or opens another window, they receive up to 2 active warnings. On the 3rd violation, the test is automatically locked and submitted."
+    },
+    {
+      q: "Can I generate questions from website links and PDFs?",
+      a: "Yes! You can paste raw text notes, enter public website URLs (like Wikipedia or news articles), or upload PDF files. Gemini AI extracts the core curriculum and generates up to 80 calibrated questions in seconds."
+    },
+    {
+      q: "Is there a limit on how many students can take a quiz?",
+      a: "No, there are no student limits. An entire classroom or grade cohort can access the same quiz PIN simultaneously with real-time scoring."
+    },
+    {
+      q: "Can students retake the test to cheat on their score?",
+      a: "No. The system locks submissions per student email and device session. Once submitted, reloading the page displays their permanent grade and leaderboard ranking instead of allowing a restart."
+    }
+  ];
+
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white flex flex-col font-sans relative overflow-x-hidden selection:bg-young-purple selection:text-white">
-      {/* Background Grid Pattern */}
-      <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:32px_32px] pointer-events-none"></div>
-
-      {/* Ambient Glows */}
-      <div className="absolute -top-40 -left-40 w-96 h-96 bg-young-purple/20 blur-[120px] rounded-full pointer-events-none"></div>
-      <div className="absolute top-1/3 -right-40 w-96 h-96 bg-young-green/10 blur-[130px] rounded-full pointer-events-none"></div>
-
-      {/* Navigation */}
-      <nav className="p-4 md:p-6 sticky top-0 z-50">
-        <div className="max-w-6xl mx-auto flex justify-between items-center backdrop-blur-xl bg-black/40 border border-white/10 rounded-full px-6 py-4 shadow-2xl">
-          <Link href="/" className="font-black text-2xl tracking-tighter flex items-center gap-2 group">
-            <div className="w-8 h-8 rounded-full bg-young-purple flex items-center justify-center text-white shadow-[0_0_20px_rgba(99,102,241,0.6)] group-hover:scale-110 transition-transform">
-              <Zap size={16} />
+    <div className="min-h-screen bg-[#ffffff] text-slate-900 font-sans selection:bg-[#fbbf24] selection:text-slate-950 flex flex-col antialiased">
+      
+      {/* 1. TOP NAVBAR */}
+      <nav className="w-full bg-white/90 backdrop-blur-md sticky top-0 z-50 border-b border-slate-100">
+        <div className="max-w-6xl mx-auto px-4 md:px-6 h-20 flex items-center justify-between">
+          
+          {/* Logo */}
+          <Link href="/" className="flex items-center gap-2.5 group">
+            <div className="w-9 h-9 rounded-full bg-[#0c1322] flex items-center justify-center text-white shadow-md shadow-slate-900/10 group-hover:scale-105 transition-transform">
+              <Zap size={18} className="text-[#fbbf24] fill-[#fbbf24]" />
             </div>
-            <span>
-              <span className="text-white">YOUNG</span>
-              <span className="text-gray-500">&amp;</span>
-              <span className="text-young-purple">TEST</span>
-            </span>
+            <div className="flex items-center tracking-tight font-black text-xl text-[#0c1322]">
+              Young<span className="text-[#f59e0b]">&amp;</span>Test
+            </div>
           </Link>
 
+          {/* Navigation Links (Desktop) */}
+          <div className="hidden md:flex items-center gap-8 text-sm font-semibold text-slate-600">
+            <a href="#how-it-works" className="hover:text-slate-900 transition-colors">How It Works</a>
+            <a href="#pin-join" className="hover:text-slate-900 transition-colors">PIN Join</a>
+            <a href="#features" className="hover:text-slate-900 transition-colors">Features</a>
+            <a href="#faq" className="hover:text-slate-900 transition-colors">FAQ</a>
+          </div>
+
+          {/* Action Buttons */}
           <div className="flex items-center gap-3">
+            <a 
+              href="#pin-join" 
+              className="hidden sm:inline-flex px-4 py-2 text-xs font-bold text-slate-700 hover:text-slate-900 transition-colors"
+            >
+              Enter PIN
+            </a>
             <Link 
               href="/dashboard" 
-              className="px-5 py-2.5 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 hover:border-young-purple/50 text-white font-bold text-sm transition-all shadow-lg hover:scale-105"
+              className="px-5 py-2.5 rounded-full bg-[#0c1322] hover:bg-[#182542] text-white text-xs font-bold transition-all shadow-md shadow-slate-900/10 hover:scale-105 active:scale-95 flex items-center gap-1.5"
             >
-              Teacher Portal
+              Teacher Portal <ArrowRight size={14} />
             </Link>
           </div>
         </div>
       </nav>
 
-      {/* Hero Section */}
-      <header className="flex-1 flex flex-col items-center justify-center text-center px-4 py-16 md:py-24 relative z-10 max-w-5xl mx-auto">
+      {/* 2. HERO SECTION */}
+      <header className="pt-16 pb-14 md:pt-24 md:pb-20 px-4 md:px-6 max-w-5xl mx-auto text-center relative">
+        
+        {/* Eyebrow Badge */}
         <motion.div 
-          initial={{ opacity: 0, y: -20 }}
+          initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="inline-flex items-center gap-2 bg-young-purple/10 border border-young-purple/30 text-young-purple px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-widest mb-8 shadow-[0_0_20px_rgba(99,102,241,0.2)]"
+          className="inline-flex items-center gap-2 bg-[#fffbeb] border border-[#fde68a] text-[#b45309] px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider mb-8 shadow-sm"
         >
-          <Sparkles size={14} className="animate-spin" /> AI-Powered Classroom Assessments
+          <Sparkles size={13} className="text-[#f59e0b]" /> 2026 AI Assessment Platform
         </motion.div>
 
+        {/* Main Headline with Emojis matching reference image */}
         <motion.h1 
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="text-4xl sm:text-6xl md:text-7xl font-black tracking-tight leading-[1.1] mb-6"
+          className="text-4xl sm:text-6xl md:text-7xl font-extrabold tracking-tight text-[#0c1322] leading-[1.08] mb-6"
         >
-          Where Young Minds Make <br className="hidden md:block" />
-          <span className="bg-gradient-to-r from-young-green via-white to-young-purple bg-clip-text text-transparent">
-            Big Knowledge.
-          </span>
+          Another year of 🏆 quizzes. <br className="hidden sm:block" />
+          Are your students 🎮 ready?
         </motion.h1>
 
+        {/* Subtitle */}
         <motion.p 
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
-          className="text-lg md:text-xl text-gray-400 font-medium mb-12 max-w-2xl leading-relaxed"
+          className="text-base sm:text-lg md:text-xl text-slate-600 max-w-2xl mx-auto mb-10 font-medium leading-relaxed"
         >
-          Generate intelligent, interactive quizzes in seconds from any lesson, article, or topic. Students join instantly with a 6-digit code.
+          Generate intelligent, calibrated classroom quizzes in seconds from any lesson, article, or PDF. Students join instantly with a memorable 6-digit PIN.
         </motion.p>
 
-        {/* Student PIN Entry Card */}
+        {/* CTA Buttons */}
         <motion.div 
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
+          initial={{ opacity: 0, y: 15 }}
+          animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
-          className="w-full max-w-md bg-[#141414]/90 backdrop-blur-xl border border-white/10 p-6 md:p-8 rounded-[2.5rem] shadow-[0_20px_60px_rgba(0,0,0,0.7)] relative mb-12"
+          className="flex flex-col sm:flex-row items-center justify-center gap-3.5 mb-6"
         >
-          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-young-green via-young-purple to-young-orange"></div>
-          
-          <div className="flex items-center justify-center gap-2 text-xs font-black uppercase tracking-widest text-young-green mb-3">
-            <KeyRound size={16} /> Student Quick Join
-          </div>
-          <h2 className="text-xl font-bold text-white mb-6">Enter 6-Digit Quiz PIN</h2>
-
-          <form onSubmit={handleJoinQuiz} className="space-y-4">
-            <div>
-              <input 
-                type="text"
-                maxLength={8}
-                value={pin}
-                onChange={(e) => {
-                  setPin(e.target.value);
-                  if (error) setError("");
-                }}
-                placeholder="e.g. 482 195"
-                className="w-full text-center text-3xl md:text-4xl font-black tracking-widest py-4 px-6 bg-white/5 border border-white/10 rounded-2xl focus:border-young-green focus:ring-4 focus:ring-young-green/20 outline-none transition-all placeholder:text-gray-600 text-young-green font-mono"
-              />
-            </div>
-
-            {error && (
-              <motion.div 
-                initial={{ opacity: 0, y: -10 }} 
-                animate={{ opacity: 1, y: 0 }}
-                className="text-xs font-bold text-red-400 bg-red-400/10 border border-red-400/20 py-2 px-4 rounded-xl"
-              >
-                {error}
-              </motion.div>
-            )}
-
-            <button 
-              type="submit" 
-              disabled={loading}
-              className="w-full py-4 bg-gradient-to-r from-young-green to-[#22c55e] text-young-black font-black text-base rounded-2xl flex items-center justify-center gap-2 shadow-[0_0_30px_rgba(74,222,128,0.4)] hover:shadow-[0_0_40px_rgba(74,222,128,0.6)] hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50"
-            >
-              {loading ? (
-                <><Loader2 size={20} className="animate-spin" /> Entering Quiz Room...</>
-              ) : (
-                <>Join Quiz <ArrowRight size={20} className="stroke-[3]" /></>
-              )}
-            </button>
-          </form>
-
-          <p className="text-xs text-gray-500 font-medium mt-4">
-            Teachers: Create or manage your tests in the{" "}
-            <Link href="/dashboard" className="text-young-purple hover:underline font-bold">
-              Teacher Dashboard →
-            </Link>
-          </p>
+          <a 
+            href="#pin-join" 
+            className="w-full sm:w-auto px-8 py-3.5 rounded-full bg-[#0c1322] hover:bg-[#16233f] text-white font-bold text-sm transition-all shadow-lg shadow-slate-900/15 hover:scale-105 active:scale-95 flex items-center justify-center gap-2"
+          >
+            Enter 6-Digit PIN <ArrowRight size={16} />
+          </a>
+          <Link 
+            href="/dashboard" 
+            className="w-full sm:w-auto px-8 py-3.5 rounded-full bg-white hover:bg-slate-50 text-slate-800 font-bold text-sm border border-slate-200 transition-all shadow-sm hover:scale-105 active:scale-95 flex items-center justify-center gap-2"
+          >
+            Teacher Dashboard
+          </Link>
         </motion.div>
+
+        {/* Trust Badges */}
+        <motion.p 
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.4 }}
+          className="text-xs font-semibold text-slate-600 flex items-center justify-center gap-4 flex-wrap"
+        >
+          <span>⚡ 100% Free for Educators</span>
+          <span>•</span>
+          <span>🔒 3-Strike Tab Guard</span>
+          <span>•</span>
+          <span>🎯 Instant Classroom PINs</span>
+        </motion.p>
       </header>
 
-      {/* Feature Grid */}
-      <section className="py-20 px-6 max-w-6xl mx-auto w-full relative z-10">
-        <div className="text-center mb-16">
-          <p className="text-xs font-black uppercase tracking-widest text-young-purple mb-2">Built for Modern Classrooms</p>
-          <h2 className="text-3xl md:text-5xl font-black text-white">Everything You Need to Assess &amp; Engage</h2>
+      {/* 3. DUAL SHOWCASE CARDS (Directly inspired by the cards beneath hero in the reference) */}
+      <section className="px-4 md:px-6 max-w-6xl mx-auto w-full mb-20">
+        <div className="grid md:grid-cols-2 gap-6 items-stretch">
+          
+          {/* Left Card: Dark Navy Node Hub */}
+          <div className="bg-[#0c1322] text-white rounded-[2.5rem] p-8 md:p-10 shadow-2xl relative overflow-hidden flex flex-col justify-between min-h-[380px]">
+            {/* Background subtle glowing circle */}
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-80 h-80 bg-blue-600/15 rounded-full blur-3xl pointer-events-none"></div>
+            
+            <div className="relative z-10">
+              <span className="text-[11px] font-black uppercase tracking-widest text-[#fbbf24]">Intelligent Engine</span>
+              <h3 className="text-2xl font-bold mt-1 text-white">Full Classroom Assessment Suite</h3>
+              <p className="text-slate-400 text-xs mt-1 max-w-sm">
+                Built to deliver tamper-proof testing without complex software installations.
+              </p>
+            </div>
+
+            {/* Orbiting Hub Graphic */}
+            <div className="my-8 py-4 relative z-10 flex items-center justify-center">
+              <div className="relative w-64 h-52 flex items-center justify-center">
+                {/* Center Node */}
+                <div className="w-20 h-20 rounded-full bg-gradient-to-tr from-[#16233f] to-[#0c1322] border-2 border-[#fbbf24] shadow-[0_0_30px_rgba(251,191,36,0.3)] flex flex-col items-center justify-center z-10 text-center">
+                  <span className="text-xl">🏆</span>
+                  <span className="text-[10px] font-black tracking-tight text-white mt-0.5">QUIZ HUD</span>
+                </div>
+
+                {/* Orbiting Satellite 1: Top Left */}
+                <div className="absolute -top-1 left-2 bg-[#16233f] border border-white/10 px-3 py-1.5 rounded-full text-[11px] font-bold text-slate-200 flex items-center gap-1.5 shadow-lg">
+                  <span>🧠</span> Gemini AI
+                </div>
+
+                {/* Orbiting Satellite 2: Top Right */}
+                <div className="absolute -top-1 right-2 bg-[#16233f] border border-white/10 px-3 py-1.5 rounded-full text-[11px] font-bold text-slate-200 flex items-center gap-1.5 shadow-lg">
+                  <span>🎯</span> 6-Digit PIN
+                </div>
+
+                {/* Orbiting Satellite 3: Bottom Left */}
+                <div className="absolute -bottom-1 left-4 bg-[#16233f] border border-white/10 px-3 py-1.5 rounded-full text-[11px] font-bold text-slate-200 flex items-center gap-1.5 shadow-lg">
+                  <span>🔒</span> Tab Guard
+                </div>
+
+                {/* Orbiting Satellite 4: Bottom Right */}
+                <div className="absolute -bottom-1 right-4 bg-[#16233f] border border-white/10 px-3 py-1.5 rounded-full text-[11px] font-bold text-slate-200 flex items-center gap-1.5 shadow-lg">
+                  <span>📊</span> Leaderboard
+                </div>
+              </div>
+            </div>
+
+            <div className="relative z-10 pt-4 border-t border-white/10 flex items-center justify-between text-xs text-slate-400">
+              <span>Automatic Score Grading</span>
+              <span className="text-[#fbbf24] font-bold">Zero Setup Required →</span>
+            </div>
+          </div>
+
+          {/* Right Card: Clean White Assessment HUD Preview */}
+          <div className="bg-[#f8fafc] border border-slate-200/90 rounded-[2.5rem] p-8 md:p-10 shadow-lg shadow-slate-100 flex flex-col justify-between min-h-[380px]">
+            <div>
+              <div className="flex items-center justify-between mb-4">
+                <span className="text-[11px] font-black uppercase tracking-widest text-[#0c1322] bg-slate-200/70 px-3 py-1 rounded-full">
+                  Student View HUD
+                </span>
+                <span className="text-[11px] font-bold text-emerald-700 bg-emerald-100/80 px-2.5 py-1 rounded-full flex items-center gap-1">
+                  ● Live Room
+                </span>
+              </div>
+              <h3 className="text-2xl font-bold text-[#0c1322]">Interactive Testing Interface</h3>
+              <p className="text-slate-500 text-xs mt-1">
+                Equipped with keyboard shortcuts (1-4 / A-D), live timer, and instant score feedback.
+              </p>
+            </div>
+
+            {/* Mock Question Preview */}
+            <div className="my-6 bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-3">
+              <div className="flex items-center justify-between text-[11px] text-slate-600 font-bold uppercase tracking-wider">
+                <span>Question 4 of 10</span>
+                <span className="text-emerald-700 font-mono bg-emerald-50 px-2 py-0.5 rounded">⏱️ 14:22 remaining</span>
+              </div>
+              <p className="text-sm font-bold text-[#0c1322]">
+                Which cell organelle is known as the powerhouse of the cell?
+              </p>
+              <div className="grid grid-cols-2 gap-2 text-xs font-semibold">
+                <div className="p-2.5 bg-[#0c1322] text-white rounded-xl flex items-center justify-between">
+                  <span>A. Mitochondria</span>
+                  <CheckCircle2 size={14} className="text-[#fbbf24]" />
+                </div>
+                <div className="p-2.5 bg-slate-50 border border-slate-200 text-slate-700 rounded-xl">
+                  <span>B. Ribosome</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="pt-4 border-t border-slate-200/70 flex items-center justify-between text-xs text-slate-500">
+              <span className="flex items-center gap-1.5 font-bold text-emerald-600">
+                <ShieldCheck size={14} /> 3-Strike Focus Active
+              </span>
+              <span className="font-bold text-[#0c1322]">Instant Auto-Save</span>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      {/* 4. OVERLAPPING DIAGONAL MARQUEE TAPE (Signature element from reference design) */}
+      <section className="relative my-10 py-10 overflow-hidden bg-slate-50 border-y border-slate-100">
+        
+        {/* Tape 1: Golden Yellow Ribbon */}
+        <div className="transform -rotate-2 -translate-y-2 bg-[#fbbf24] text-slate-950 font-black text-xs md:text-sm uppercase tracking-widest py-3.5 shadow-md overflow-hidden">
+          <div className="animate-marquee whitespace-nowrap flex gap-8 items-center">
+            <span>★ 6-DIGIT CLASSROOM PINS</span>
+            <span>★ GEMINI 2.5 FLASH ENGINE</span>
+            <span>★ 3-STRIKE TAB MONITORING</span>
+            <span>★ FORCE SUBMIT CAPABILITY</span>
+            <span>★ LIVE REAL-TIME LEADERBOARD</span>
+            <span>★ PRINTABLE QUESTION SHEETS</span>
+            <span>★ 6-DIGIT CLASSROOM PINS</span>
+            <span>★ GEMINI 2.5 FLASH ENGINE</span>
+            <span>★ 3-STRIKE TAB MONITORING</span>
+            <span>★ FORCE SUBMIT CAPABILITY</span>
+            <span>★ LIVE REAL-TIME LEADERBOARD</span>
+            <span>★ PRINTABLE QUESTION SHEETS</span>
+          </div>
         </div>
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {/* Tape 2: Midnight Navy Ribbon */}
+        <div className="transform rotate-1 translate-y-2 bg-[#0c1322] text-[#fbbf24] font-black text-xs md:text-sm uppercase tracking-widest py-3.5 shadow-xl overflow-hidden mt-1">
+          <div className="animate-marquee-reverse whitespace-nowrap flex gap-8 items-center">
+            <span>★ TEXT TO QUIZ IN 3 SECONDS</span>
+            <span>★ LIVE URL SCRAPER</span>
+            <span>★ PDF LECTURE UPLOADS</span>
+            <span>★ UP TO 80 QUESTIONS</span>
+            <span>★ DETAILED CSV EXPORT</span>
+            <span>★ ZERO STUDENT SIGNUP</span>
+            <span>★ TEXT TO QUIZ IN 3 SECONDS</span>
+            <span>★ LIVE URL SCRAPER</span>
+            <span>★ PDF LECTURE UPLOADS</span>
+            <span>★ UP TO 80 QUESTIONS</span>
+            <span>★ DETAILED CSV EXPORT</span>
+            <span>★ ZERO STUDENT SIGNUP</span>
+          </div>
+        </div>
+      </section>
+
+      {/* 5. "HOW IT WORKS" SECTION (Matching 4-step row from reference) */}
+      <section id="how-it-works" className="py-20 px-4 md:px-6 max-w-5xl mx-auto w-full text-center">
+        <span className="text-xs font-black uppercase tracking-widest text-[#f59e0b] bg-[#fffbeb] px-3.5 py-1.5 rounded-full border border-[#fde68a]">
+          Simple Workflow
+        </span>
+        <h2 className="text-3xl md:text-5xl font-extrabold text-[#0c1322] tracking-tight mt-4 mb-3">
+          How it works
+        </h2>
+        <p className="text-slate-600 text-sm md:text-base max-w-lg mx-auto mb-16 font-medium">
+          Create, assign, and review classroom tests in four seamless steps.
+        </p>
+
+        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-8">
           {[
             {
-              title: "Instant AI Creation",
-              desc: "Paste lesson text, notes, or web articles. Gemini 3.8 crafts custom multiple choice & true/false quizzes in 3 seconds.",
-              icon: <Zap size={24} className="text-young-purple" />,
-              badge: "Gemini 3.8"
+              step: "1",
+              title: "Input Source",
+              desc: "Paste lesson notes, enter any website URL, or drop a lecture PDF.",
+              icon: "📝"
             },
             {
-              title: "6-Digit Game PINs",
-              desc: "No long complicated links. Project a memorable 6-digit PIN on the classroom whiteboard for immediate student entry.",
-              icon: <KeyRound size={24} className="text-young-green" />,
-              badge: "Instant Join"
+              step: "2",
+              title: "AI Generates",
+              desc: "Gemini creates calibrated multiple-choice questions in under 3 seconds.",
+              icon: "⚡"
             },
             {
-              title: "Anti-Cheat Telemetry",
-              desc: "Automatic tab-switch proctoring monitors browser focus and alerts teachers of potential distraction or cheating.",
-              icon: <ShieldCheck size={24} className="text-young-orange" />,
-              badge: "Proctored"
+              step: "3",
+              title: "Share 6-Digit PIN",
+              desc: "Students join instantly from their phones or laptops with zero account setup.",
+              icon: "🎯"
             },
             {
-              title: "Live Grade Analytics",
-              desc: "Instant score distributions, question difficulty stats, and one-click export to CSV spreadsheets or printable PDF.",
-              icon: <BarChart3 size={24} className="text-white" />,
-              badge: "CSV Export"
+              step: "4",
+              title: "Review Results",
+              desc: "Automatic grading, student leaderboards, and detailed CSV export.",
+              icon: "📊"
             }
-          ].map((feature, i) => (
-            <motion.div 
-              key={i}
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: i * 0.1 }}
-              className="bg-[#121212] p-8 rounded-[2rem] border border-white/5 hover:border-white/20 transition-all hover:-translate-y-1 shadow-lg relative group overflow-hidden"
-            >
-              <div className="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform border border-white/10">
-                {feature.icon}
+          ].map((item, idx) => (
+            <div key={idx} className="flex flex-col items-center text-center group">
+              <div className="w-16 h-16 rounded-full bg-[#0c1322] text-white flex items-center justify-center text-2xl shadow-lg shadow-slate-900/10 mb-5 group-hover:scale-110 transition-transform relative">
+                <span>{item.icon}</span>
+                <span className="absolute -top-1.5 -right-1.5 w-6 h-6 rounded-full bg-[#fbbf24] text-slate-950 font-black text-xs flex items-center justify-center shadow">
+                  {item.step}
+                </span>
               </div>
-              <div className="inline-block text-[10px] font-black uppercase tracking-wider text-gray-400 bg-white/5 px-2.5 py-1 rounded-full mb-3 border border-white/5">
-                {feature.badge}
-              </div>
-              <h3 className="text-xl font-bold mb-2 text-white">{feature.title}</h3>
-              <p className="text-gray-400 text-sm font-medium leading-relaxed">{feature.desc}</p>
-            </motion.div>
+              <h4 className="text-base font-extrabold text-[#0c1322] mb-2">{item.title}</h4>
+              <p className="text-xs text-slate-600 leading-relaxed max-w-[210px]">{item.desc}</p>
+            </div>
           ))}
         </div>
       </section>
 
-      {/* Teacher Callout */}
-      <section className="py-16 px-6 max-w-4xl mx-auto w-full relative z-10">
-        <div className="bg-gradient-to-r from-young-purple/20 via-[#161616] to-young-green/10 p-8 md:p-12 rounded-[3rem] border border-white/10 text-center relative overflow-hidden shadow-2xl">
-          <h2 className="text-3xl md:text-4xl font-black mb-4 text-white">Ready to create your next quiz?</h2>
-          <p className="text-gray-400 text-base max-w-xl mx-auto mb-8 font-medium">
-            Join hundreds of educators building interactive classroom assessments with intelligent grading and full privacy.
+      {/* 6. "STUDENT QUICK JOIN / PIN & PLAY" SECTION (Matching "Pay and confirm" card layout in reference) */}
+      <section id="pin-join" className="py-16 px-4 md:px-6 max-w-5xl mx-auto w-full">
+        <div className="text-center mb-10">
+          <span className="text-xs font-black uppercase tracking-widest text-[#0c1322] bg-slate-100 px-3.5 py-1.5 rounded-full">
+            Quick Join
+          </span>
+          <h2 className="text-3xl md:text-4xl font-extrabold text-[#0c1322] tracking-tight mt-3">
+            Join with classroom PIN
+          </h2>
+          <p className="text-slate-600 text-sm max-w-md mx-auto mt-2">
+            No password or app download required. Type the PIN provided by your teacher.
           </p>
-          <div className="flex flex-col sm:flex-row justify-center items-center gap-4">
-            <Link 
-              href="/dashboard" 
-              className="w-full sm:w-auto px-8 py-4 bg-young-purple hover:bg-young-purple/90 text-white font-bold rounded-2xl shadow-[0_0_30px_rgba(99,102,241,0.4)] hover:scale-105 transition-all flex items-center justify-center gap-2"
+        </div>
+
+        {/* Two-Column Card Container matching reference */}
+        <div className="grid md:grid-cols-2 rounded-[2.5rem] border border-slate-200 shadow-xl overflow-hidden bg-white">
+          
+          {/* Left Column: Dark Navy Status Card */}
+          <div className="bg-[#0c1322] text-white p-8 md:p-12 flex flex-col justify-between">
+            <div>
+              <div className="flex items-center justify-between text-xs text-slate-400 mb-8">
+                <span className="uppercase tracking-widest font-bold">Assessment Room</span>
+                <span className="bg-emerald-500/20 text-emerald-400 font-bold px-2.5 py-0.5 rounded-full border border-emerald-500/30">
+                  Ready to Join
+                </span>
+              </div>
+
+              <div className="mb-8">
+                <p className="text-xs uppercase tracking-wider text-slate-400 font-semibold mb-1">Sample Active PIN</p>
+                <div className="text-4xl sm:text-5xl font-mono font-black tracking-widest text-[#fbbf24]">
+                  954 266
+                </div>
+              </div>
+
+              <div className="space-y-3 border-t border-white/10 pt-6 text-xs text-slate-300">
+                <div className="flex justify-between">
+                  <span className="text-slate-400">Supported Devices</span>
+                  <span className="font-bold text-white">Phones, Tablets, Laptops</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-400">Security Guard</span>
+                  <span className="font-bold text-white">3-Strike Tab Proctoring</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-400">Session Resumption</span>
+                  <span className="font-bold text-white">Automatic Auto-Save</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="pt-8 text-xs text-slate-400 flex items-center gap-2">
+              <CheckCircle2 size={16} className="text-[#fbbf24]" />
+              <span>Questions lock to your student session automatically.</span>
+            </div>
+          </div>
+
+          {/* Right Column: Clean White PIN Entry Form */}
+          <div className="p-8 md:p-12 flex flex-col justify-center bg-white">
+            <h3 className="text-2xl font-bold text-[#0c1322] mb-2">Enter 6-Digit PIN</h3>
+            <p className="text-xs text-slate-500 mb-8">
+              Type the code shown on your classroom smartboard or shared by your teacher.
+            </p>
+
+            <form onSubmit={handleJoinQuiz} className="space-y-5">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
+                  Classroom PIN
+                </label>
+                <input 
+                  type="text"
+                  maxLength={8}
+                  value={pin}
+                  onChange={(e) => {
+                    setPin(e.target.value);
+                    if (error) setError("");
+                  }}
+                  placeholder="e.g. 954 266"
+                  className="w-full text-center text-3xl md:text-4xl font-black tracking-widest py-4 px-6 bg-slate-50 border-2 border-slate-200 rounded-2xl focus:border-[#0c1322] focus:bg-white outline-none transition-all placeholder:text-slate-300 text-[#0c1322] font-mono shadow-inner"
+                />
+              </div>
+
+              {error && (
+                <motion.div 
+                  initial={{ opacity: 0, y: -6 }} 
+                  animate={{ opacity: 1, y: 0 }}
+                  className="text-xs font-bold text-red-600 bg-red-50 border border-red-200 py-2.5 px-4 rounded-xl flex items-center gap-2"
+                >
+                  <ShieldAlert size={15} /> {error}
+                </motion.div>
+              )}
+
+              <button 
+                type="submit" 
+                disabled={loading}
+                className="w-full py-4 bg-[#0c1322] hover:bg-[#182542] text-white font-extrabold text-sm rounded-2xl flex items-center justify-center gap-2 shadow-lg shadow-slate-900/15 hover:scale-[1.01] active:scale-[0.98] transition-all disabled:opacity-50"
+              >
+                {loading ? (
+                  <><Loader2 size={18} className="animate-spin" /> Entering Quiz Room...</>
+                ) : (
+                  <>Join Assessment <ArrowRight size={18} /></>
+                )}
+              </button>
+            </form>
+
+            <p className="text-center text-xs text-slate-400 mt-6 font-medium">
+              Are you a teacher?{" "}
+              <Link href="/dashboard" className="text-[#0c1322] hover:underline font-bold">
+                Open Dashboard →
+              </Link>
+            </p>
+          </div>
+
+        </div>
+      </section>
+
+      {/* 7. THREE SOFT PASTEL CARDS (Directly matching "Bring a game, make the day" in reference image) */}
+      <section id="features" className="py-20 px-4 md:px-6 max-w-6xl mx-auto w-full">
+        <div className="text-center mb-16">
+          <div className="flex items-center justify-center gap-2 mb-3 text-2xl">
+            <span>🎮</span> <span>🏆</span> <span>⚡</span>
+          </div>
+          <span className="text-xs font-black uppercase tracking-widest text-[#f59e0b]">Engine Features</span>
+          <h2 className="text-3xl md:text-5xl font-extrabold text-[#0c1322] tracking-tight mt-2">
+            Bring a test, make the day
+          </h2>
+          <p className="text-slate-600 text-sm md:text-base max-w-md mx-auto mt-2 font-medium">
+            Everything designed around speed, security, and student clarity.
+          </p>
+        </div>
+
+        {/* 3 Pastel Cards Grid */}
+        <div className="grid md:grid-cols-3 gap-6">
+          
+          {/* Card 1: Soft Indigo/Blue Pastel */}
+          <div className="bg-[#eff6ff] border border-blue-100 rounded-[2.5rem] p-8 flex flex-col justify-between shadow-sm hover:shadow-md transition-shadow">
+            <div>
+              <span className="text-[11px] font-black uppercase tracking-wider text-blue-700 bg-blue-100/80 px-3 py-1 rounded-full">
+                AI Generation
+              </span>
+              <h3 className="text-2xl font-bold text-[#0c1322] mt-4 mb-2">Instant Question Engine</h3>
+              <p className="text-xs text-slate-600 leading-relaxed mb-6 font-medium">
+                Generate up to 80 multiple choice or True/False questions in under 3 seconds from notes, Wikipedia articles, or PDFs.
+              </p>
+              <div className="flex flex-wrap gap-1.5 mb-8">
+                <span className="text-[10px] font-bold bg-white text-blue-900 border border-blue-200/80 px-2.5 py-1 rounded-lg">Web URLs</span>
+                <span className="text-[10px] font-bold bg-white text-blue-900 border border-blue-200/80 px-2.5 py-1 rounded-lg">PDF Upload</span>
+                <span className="text-[10px] font-bold bg-white text-blue-900 border border-blue-200/80 px-2.5 py-1 rounded-lg">80 Max Qs</span>
+              </div>
+            </div>
+
+            <div className="pt-4 border-t border-blue-200/60 flex items-center justify-between text-xs font-bold text-blue-900">
+              <span>Gemini 2.5 Flash</span>
+              <span>Fast AI →</span>
+            </div>
+          </div>
+
+          {/* Card 2: Soft Amber/Yellow Pastel */}
+          <div className="bg-[#fffbeb] border border-amber-100 rounded-[2.5rem] p-8 flex flex-col justify-between shadow-sm hover:shadow-md transition-shadow">
+            <div>
+              <span className="text-[11px] font-black uppercase tracking-wider text-amber-800 bg-amber-100/80 px-3 py-1 rounded-full">
+                Test Integrity
+              </span>
+              <h3 className="text-2xl font-bold text-[#0c1322] mt-4 mb-2">3-Strike Tab Guard</h3>
+              <p className="text-xs text-slate-600 leading-relaxed mb-6 font-medium">
+                Dual window-focus monitoring warns students who switch tabs and automatically force-submits exams on the 3rd strike.
+              </p>
+              <div className="flex flex-wrap gap-1.5 mb-8">
+                <span className="text-[10px] font-bold bg-white text-amber-900 border border-amber-200/80 px-2.5 py-1 rounded-lg">Blur Tracking</span>
+                <span className="text-[10px] font-bold bg-white text-amber-900 border border-amber-200/80 px-2.5 py-1 rounded-lg">Auto-Lock</span>
+                <span className="text-[10px] font-bold bg-white text-amber-900 border border-amber-200/80 px-2.5 py-1 rounded-lg">Audit Telemetry</span>
+              </div>
+            </div>
+
+            <div className="pt-4 border-t border-amber-200/60 flex items-center justify-between text-xs font-bold text-amber-900">
+              <span>Proctored Assessment</span>
+              <span>Zero Cheating →</span>
+            </div>
+          </div>
+
+          {/* Card 3: Soft Mint/Green Pastel */}
+          <div className="bg-[#ecfdf5] border border-emerald-100 rounded-[2.5rem] p-8 flex flex-col justify-between shadow-sm hover:shadow-md transition-shadow">
+            <div>
+              <span className="text-[11px] font-black uppercase tracking-wider text-emerald-800 bg-emerald-100/80 px-3 py-1 rounded-full">
+                Real-Time Data
+              </span>
+              <h3 className="text-2xl font-bold text-[#0c1322] mt-4 mb-2">Gradebook &amp; Export</h3>
+              <p className="text-xs text-slate-600 leading-relaxed mb-6 font-medium">
+                Live classroom leaderboards, grade distributions, hardest question analytics, and 1-click CSV spreadsheet download.
+              </p>
+              <div className="flex flex-wrap gap-1.5 mb-8">
+                <span className="text-[10px] font-bold bg-white text-emerald-900 border border-emerald-200/80 px-2.5 py-1 rounded-lg">Leaderboard</span>
+                <span className="text-[10px] font-bold bg-white text-emerald-900 border border-emerald-200/80 px-2.5 py-1 rounded-lg">CSV Download</span>
+                <span className="text-[10px] font-bold bg-white text-emerald-900 border border-emerald-200/80 px-2.5 py-1 rounded-lg">Score Charts</span>
+              </div>
+            </div>
+
+            <div className="pt-4 border-t border-emerald-200/60 flex items-center justify-between text-xs font-bold text-emerald-900">
+              <span>Instant Reports</span>
+              <span>Live HUD →</span>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      {/* 8. FAQ ACCORDION SECTION (Matching "Questions" section in reference image) */}
+      <section id="faq" className="py-20 px-4 md:px-6 max-w-5xl mx-auto w-full">
+        <div className="text-center mb-16">
+          <h2 className="text-3xl md:text-5xl font-extrabold text-[#0c1322] tracking-tight">
+            Frequently Asked Questions
+          </h2>
+          <p className="text-slate-500 text-sm mt-2">
+            Everything you need to know about setting up and running quizzes.
+          </p>
+        </div>
+
+        <div className="grid md:grid-cols-3 gap-8">
+          
+          {/* FAQ Accordion List (2 cols on md) */}
+          <div className="md:col-span-2 space-y-4">
+            {faqs.map((faq, i) => {
+              const isOpen = activeFaq === i;
+
+              return (
+                <div 
+                  key={i} 
+                  className="border border-slate-200 rounded-2xl overflow-hidden bg-white shadow-sm transition-colors"
+                >
+                  <button
+                    onClick={() => setActiveFaq(isOpen ? null : i)}
+                    className="w-full py-5 px-6 text-left font-bold text-sm md:text-base text-[#0c1322] flex justify-between items-center gap-4 hover:bg-slate-50 transition-colors"
+                  >
+                    <span>{faq.q}</span>
+                    <ChevronDown 
+                      size={18} 
+                      className={`text-slate-400 transition-transform duration-200 flex-shrink-0 ${isOpen ? 'rotate-180 text-[#0c1322]' : ''}`} 
+                    />
+                  </button>
+
+                  <AnimatePresence>
+                    {isOpen && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: "auto", opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.2 }}
+                      >
+                        <div className="px-6 pb-5 pt-1 text-xs md:text-sm text-slate-600 leading-relaxed border-t border-slate-100">
+                          {faq.a}
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Right Help Card matching reference sidebar */}
+          <div className="bg-[#f8fafc] border border-slate-200 rounded-3xl p-8 flex flex-col justify-between text-left h-fit">
+            <div>
+              <div className="w-10 h-10 rounded-2xl bg-[#0c1322] text-[#fbbf24] flex items-center justify-center mb-4 shadow">
+                <GraduationCap size={20} />
+              </div>
+              <h4 className="text-lg font-bold text-[#0c1322] mb-1">Teacher Quick Support</h4>
+              <p className="text-xs text-slate-500 mb-6 leading-relaxed">
+                Need to create a specialized quiz format or import institutional curriculum?
+              </p>
+            </div>
+
+            <div className="space-y-3">
+              <Link
+                href="/dashboard"
+                className="w-full py-3 bg-[#0c1322] hover:bg-[#182542] text-white font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 transition-colors"
+              >
+                Go to Dashboard <ArrowRight size={14} />
+              </Link>
+              <a
+                href="#pin-join"
+                className="w-full py-3 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 font-bold text-xs rounded-xl flex items-center justify-center transition-colors"
+              >
+                Test With Sample PIN
+              </a>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      {/* 9. BOTTOM DARK BANNER (Matching "Are you coming?" bottom CTA in reference image) */}
+      <section className="px-4 md:px-6 max-w-5xl mx-auto w-full mb-20">
+        <div className="bg-[#0c1322] text-white rounded-[2.5rem] p-10 md:p-16 text-center relative overflow-hidden shadow-2xl">
+          
+          {/* Playful geometric shapes in corners matching reference */}
+          <div className="absolute top-6 left-8 w-6 h-6 rounded-full bg-[#fbbf24] pointer-events-none"></div>
+          <div className="absolute top-8 right-12 w-8 h-8 rounded-xl bg-blue-600/60 rotate-12 pointer-events-none"></div>
+          <div className="absolute bottom-6 left-12 w-7 h-7 bg-[#f59e0b] transform rotate-45 pointer-events-none"></div>
+          <div className="absolute bottom-8 right-10 w-9 h-9 rounded-2xl bg-blue-500/40 pointer-events-none"></div>
+
+          <div className="relative z-10 max-w-xl mx-auto">
+            <h2 className="text-3xl md:text-5xl font-extrabold tracking-tight mb-4">
+              Are you ready to test smarter?
+            </h2>
+            <p className="text-slate-400 text-sm md:text-base font-medium mb-8">
+              Join educators worldwide creating engaging, proctored assessments in seconds.
+            </p>
+
+            <Link
+              href="/dashboard"
+              className="inline-flex items-center gap-2 px-8 py-4 rounded-full bg-[#fbbf24] hover:bg-[#f59e0b] text-slate-950 font-black text-sm transition-all shadow-lg shadow-amber-500/20 hover:scale-105 active:scale-95"
             >
-              Open Teacher Dashboard <ArrowRight size={18} />
+              Open Teacher Dashboard <ArrowRight size={16} />
             </Link>
           </div>
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="py-12 border-t border-white/5 text-center text-xs font-medium text-gray-500 relative z-10">
-        <div className="max-w-6xl mx-auto px-6 flex flex-col sm:flex-row justify-between items-center gap-4">
-          <p>&copy; 2026 Young&amp;Test. Powered by Gemini 3.8 &amp; Supabase.</p>
-          <div className="flex items-center gap-6">
-            <Link href="/login" className="hover:text-white transition-colors">Teacher Login</Link>
-            <Link href="/signup" className="hover:text-white transition-colors">Sign Up</Link>
-            <Link href="/dashboard" className="hover:text-white transition-colors">Dashboard</Link>
+      {/* 10. MINIMALIST FOOTER */}
+      <footer className="w-full border-t border-slate-100 py-12 bg-white text-slate-500 text-xs">
+        <div className="max-w-6xl mx-auto px-4 md:px-6 flex flex-col sm:flex-row justify-between items-center gap-6">
+          
+          <div className="flex items-center gap-2.5">
+            <div className="w-7 h-7 rounded-full bg-[#0c1322] flex items-center justify-center text-white">
+              <Zap size={14} className="text-[#fbbf24] fill-[#fbbf24]" />
+            </div>
+            <span className="font-extrabold text-sm text-[#0c1322]">Young &amp; Test</span>
           </div>
+
+          <p className="text-slate-400 text-center sm:text-left">
+            &copy; 2026 Young &amp; Test. All rights reserved. Powered by Gemini 2.5 &amp; Supabase.
+          </p>
+
+          <div className="flex items-center gap-6 font-semibold text-slate-600">
+            <a href="#how-it-works" className="hover:text-slate-900 transition-colors">How It Works</a>
+            <a href="#pin-join" className="hover:text-slate-900 transition-colors">Enter PIN</a>
+            <Link href="/dashboard" className="hover:text-slate-900 transition-colors">Dashboard</Link>
+          </div>
+
         </div>
       </footer>
+
     </div>
   );
 }
