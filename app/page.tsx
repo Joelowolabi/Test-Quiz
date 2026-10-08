@@ -123,36 +123,36 @@ export default function LandingPage() {
       </nav>
 
       {/* 2. HERO SECTION */}
-      <header className="pt-16 pb-14 md:pt-24 md:pb-20 px-4 md:px-6 max-w-5xl mx-auto text-center relative">
+      <header className="pt-16 pb-12 md:pt-20 md:pb-16 px-4 md:px-6 max-w-4xl mx-auto text-center relative">
         
         {/* Eyebrow Badge */}
         <motion.div 
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="inline-flex items-center gap-2 bg-[#fffbeb] border border-[#fde68a] text-[#b45309] px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider mb-8 shadow-sm"
+          className="inline-flex items-center gap-2 bg-[#fffbeb] border border-[#fde68a] text-[#b45309] px-3.5 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider mb-6 shadow-sm"
         >
-          <Sparkles size={13} className="text-[#f59e0b]" /> AI-Powered Classroom Assessments
+          <Sparkles size={13} className="text-[#f59e0b]" /> AI Quiz Generator
         </motion.div>
 
-        {/* Professional, Education-Focused Headline */}
+        {/* Punchy, High-Impact Headline */}
         <motion.h1 
           initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="text-4xl sm:text-6xl md:text-7xl font-extrabold tracking-tight text-[#0c1322] leading-[1.08] mb-6"
+          className="text-4xl sm:text-6xl md:text-7xl font-extrabold tracking-tight text-[#0c1322] leading-[1.08] mb-5"
         >
-          Intelligent quizzes in seconds. <br className="hidden sm:block" />
-          Effortless classroom grading.
+          Quizzes in seconds. <br className="hidden sm:block" />
+          Effortless grading.
         </motion.h1>
 
-        {/* Subtitle */}
+        {/* Concise Subtitle */}
         <motion.p 
           initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
-          className="text-base sm:text-lg md:text-xl text-slate-600 max-w-2xl mx-auto mb-10 font-medium leading-relaxed"
+          className="text-base sm:text-lg text-slate-600 max-w-xl mx-auto mb-8 font-medium leading-relaxed"
         >
-          Turn lesson notes, web articles, and lecture PDFs into interactive assessments with instant 6-digit PIN access, live focus proctoring, and automated gradebook analytics.
+          Turn notes, links, and PDFs into proctored quizzes. Share a 6-digit PIN and get instant results.
         </motion.p>
 
         {/* CTA Buttons */}
@@ -164,15 +164,15 @@ export default function LandingPage() {
         >
           <a 
             href="#pin-join" 
-            className="w-full sm:w-auto px-8 py-3.5 rounded-full bg-[#0c1322] hover:bg-[#16233f] text-white font-bold text-sm transition-all shadow-lg shadow-slate-900/15 hover:scale-105 active:scale-95 flex items-center justify-center gap-2"
+            className="w-full sm:w-auto px-7 py-3 rounded-full bg-[#0c1322] hover:bg-[#16233f] text-white font-bold text-sm transition-all shadow-lg shadow-slate-900/15 hover:scale-105 active:scale-95 flex items-center justify-center gap-2"
           >
-            Enter 6-Digit PIN <ArrowRight size={16} />
+            Enter 6-Digit PIN <ArrowRight size={15} />
           </a>
           <Link 
             href="/dashboard" 
-            className="w-full sm:w-auto px-8 py-3.5 rounded-full bg-white hover:bg-slate-50 text-slate-800 font-bold text-sm border border-slate-200 transition-all shadow-sm hover:scale-105 active:scale-95 flex items-center justify-center gap-2"
+            className="w-full sm:w-auto px-7 py-3 rounded-full bg-white hover:bg-slate-50 text-slate-800 font-bold text-sm border border-slate-200 transition-all shadow-sm hover:scale-105 active:scale-95 flex items-center justify-center gap-2"
           >
-            Create a Quiz (Teacher Dashboard)
+            Create a Quiz
           </Link>
         </motion.div>
 
@@ -181,13 +181,13 @@ export default function LandingPage() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.4 }}
-          className="text-xs font-semibold text-slate-600 flex items-center justify-center gap-4 flex-wrap"
+          className="text-xs font-semibold text-slate-500 flex items-center justify-center gap-3 sm:gap-4 flex-wrap"
         >
-          <span>⚡ 100% Free for Educators</span>
+          <span>⚡ Free for Teachers</span>
           <span>•</span>
-          <span>🔒 3-Strike Tab Proctoring</span>
+          <span>🔒 Anti-Cheat Focus</span>
           <span>•</span>
-          <span>🎯 Instant Classroom PINs</span>
+          <span>🎯 No Student Sign-Up</span>
         </motion.p>
       </header>
 
@@ -196,20 +196,20 @@ export default function LandingPage() {
         <div className="grid md:grid-cols-2 gap-6 items-stretch">
           
           {/* Left Card: Dark Navy Interactive Hub */}
-          <div className="bg-[#0c1322] text-white rounded-[2.5rem] p-8 md:p-10 shadow-2xl relative overflow-hidden flex flex-col justify-between min-h-[380px]">
+          <div className="bg-[#0c1322] text-white rounded-[2.5rem] p-7 md:p-9 shadow-2xl relative overflow-hidden flex flex-col justify-between min-h-[360px]">
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-80 h-80 bg-blue-600/15 rounded-full blur-3xl pointer-events-none"></div>
             
             <div className="relative z-10">
-              <span className="text-[11px] font-black uppercase tracking-widest text-[#fbbf24]">AI-Powered Assessment</span>
-              <h3 className="text-2xl font-bold mt-1 text-white">Curriculum to Questions in 3 Seconds</h3>
+              <span className="text-[11px] font-black uppercase tracking-widest text-[#fbbf24]">Instant Generation</span>
+              <h3 className="text-2xl font-bold mt-1 text-white">Notes to Quiz in Seconds</h3>
               <p className="text-slate-400 text-xs mt-1 max-w-sm">
-                Generate up to 80 calibrated questions from text, educational URLs, or lecture handouts with custom difficulty levels.
+                Generate up to 80 calibrated questions from text, links, or PDF slides.
               </p>
             </div>
 
             {/* Orbiting Satellite Diagram */}
-            <div className="my-8 py-4 relative z-10 flex items-center justify-center">
-              <div className="relative w-64 h-52 flex items-center justify-center">
+            <div className="my-6 py-2 relative z-10 flex items-center justify-center">
+              <div className="relative w-64 h-48 flex items-center justify-center">
                 {/* Center Node */}
                 <div className="w-20 h-20 rounded-full bg-gradient-to-tr from-[#16233f] to-[#0c1322] border-2 border-[#fbbf24] shadow-[0_0_30px_rgba(251,191,36,0.3)] flex flex-col items-center justify-center z-10 text-center">
                   <span className="text-xl">🏆</span>
@@ -218,7 +218,7 @@ export default function LandingPage() {
 
                 {/* Orbiting Satellites */}
                 <div className="absolute -top-1 left-2 bg-[#16233f] border border-white/10 px-3 py-1.5 rounded-full text-[11px] font-bold text-slate-200 flex items-center gap-1.5 shadow-lg">
-                  <span>🧠</span> Gemini 2.5 AI
+                  <span>🧠</span> Gemini AI
                 </div>
 
                 <div className="absolute -top-1 right-2 bg-[#16233f] border border-white/10 px-3 py-1.5 rounded-full text-[11px] font-bold text-slate-200 flex items-center gap-1.5 shadow-lg">
@@ -236,15 +236,15 @@ export default function LandingPage() {
             </div>
 
             <div className="relative z-10 pt-4 border-t border-white/10 flex items-center justify-between text-xs text-slate-400">
-              <span>Automated Scoring &amp; Answer Keys</span>
-              <span className="text-[#fbbf24] font-bold">Zero Student Signup →</span>
+              <span>Automated Answer Keys</span>
+              <span className="text-[#fbbf24] font-bold">No Sign-Up Needed →</span>
             </div>
           </div>
 
           {/* Right Card: Clean White Student Assessment HUD Preview */}
-          <div className="bg-[#f8fafc] border border-slate-200/90 rounded-[2.5rem] p-8 md:p-10 shadow-lg shadow-slate-100 flex flex-col justify-between min-h-[380px]">
+          <div className="bg-[#f8fafc] border border-slate-200/90 rounded-[2.5rem] p-7 md:p-9 shadow-lg shadow-slate-100 flex flex-col justify-between min-h-[360px]">
             <div>
-              <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center justify-between mb-3">
                 <span className="text-[11px] font-black uppercase tracking-widest text-[#0c1322] bg-slate-200/70 px-3 py-1 rounded-full">
                   Student Testing HUD
                 </span>
@@ -252,27 +252,27 @@ export default function LandingPage() {
                   ● Proctored Session
                 </span>
               </div>
-              <h3 className="text-2xl font-bold text-[#0c1322]">Distraction-Free Exam Interface</h3>
+              <h3 className="text-2xl font-bold text-[#0c1322]">Clean Exam Interface</h3>
               <p className="text-slate-500 text-xs mt-1">
-                Equipped with keyboard shortcuts (1-4 / A-D), live countdown timer, and automatic progress saving.
+                Live countdown timer, keyboard shortcuts, and active focus tracking.
               </p>
             </div>
 
             {/* Authentic Curriculum Question Preview */}
-            <div className="my-6 bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-3">
+            <div className="my-5 bg-white border border-slate-200 rounded-2xl p-4 md:p-5 shadow-sm space-y-3">
               <div className="flex items-center justify-between text-[11px] text-slate-600 font-bold uppercase tracking-wider">
                 <span>Question 3 of 15</span>
                 <span className="text-emerald-700 font-mono bg-emerald-50 px-2 py-0.5 rounded">⏱️ 12:45 remaining</span>
               </div>
               <p className="text-sm font-bold text-[#0c1322]">
-                Which cellular process produces the majority of ATP in eukaryotic cells during aerobic respiration?
+                What is the powerhouse of the cell responsible for producing ATP?
               </p>
               <div className="grid grid-cols-2 gap-2 text-xs font-semibold">
                 <div className="p-2.5 bg-slate-50 border border-slate-200 text-slate-700 rounded-xl">
-                  <span>A. Glycolysis</span>
+                  <span>A. Ribosome</span>
                 </div>
                 <div className="p-2.5 bg-[#0c1322] text-white rounded-xl flex items-center justify-between">
-                  <span>B. Oxidative Phosphorylation</span>
+                  <span>B. Mitochondria</span>
                   <CheckCircle2 size={14} className="text-[#fbbf24]" />
                 </div>
               </div>
@@ -280,9 +280,9 @@ export default function LandingPage() {
 
             <div className="pt-4 border-t border-slate-200/70 flex items-center justify-between text-xs text-slate-500">
               <span className="flex items-center gap-1.5 font-bold text-emerald-600">
-                <ShieldCheck size={14} /> 3-Strike Focus Active
+                <ShieldCheck size={14} /> 3-Strike Tab Lock
               </span>
-              <span className="font-bold text-[#0c1322]">Automatic Session Recovery</span>
+              <span className="font-bold text-[#0c1322]">Auto-Save Enabled</span>
             </div>
           </div>
 
