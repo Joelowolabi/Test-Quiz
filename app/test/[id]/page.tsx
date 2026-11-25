@@ -30,6 +30,10 @@ export default function StudentTestPage({ params }: { params: { id: string } }) 
   const [submissionId, setSubmissionId] = useState<string | null>(null);
   const [showForceSubmitModal, setShowForceSubmitModal] = useState(false);
   const [sessionRestored, setSessionRestored] = useState(false);
+  const [endsAt, setEndsAt] = useState<number | null>(null);
+  const [dotFilter, setDotFilter] = useState<"all" | "unanswered" | "flagged">("all");
+  const [review, setReview] = useState<any[]>([]);
+  const [showReview, setShowReview] = useState(false);
 
   // Anti-Cheat: Tab Switching Enforcement (3-Strike System)
   const MAX_TAB_SWITCHES = 3;
@@ -51,6 +55,7 @@ export default function StudentTestPage({ params }: { params: { id: string } }) 
           currentQuestionIndex,
           flagged,
           timeLeft,
+          endsAt,
           cheatWarnings,
           step: "test",
           isCompleted: false,
@@ -62,7 +67,7 @@ export default function StudentTestPage({ params }: { params: { id: string } }) 
         // Storage access error handling
       }
     }
-  }, [step, studentName, studentEmail, answers, currentQuestionIndex, flagged, timeLeft, cheatWarnings, questions, params.id]);
+  }, [step, studentName, studentEmail, answers, currentQuestionIndex, flagged, timeLeft, endsAt, cheatWarnings, questions, params.id]);
 
   // Prevent accidental page reloads/tab close while taking test
   useEffect(() => {
@@ -78,19 +83,27 @@ export default function StudentTestPage({ params }: { params: { id: string } }) 
   }, [step, isSubmitting]);
 
   useEffect(() => {
-    if (step === "test" && timeLeft === null && test?.time_limit > 0) {
-      setTimeLeft(test.time_limit * 60); 
+    if (step === "test" && endsAt === null && test?.time_limit > 0) {
+      const targetEnd = Date.now() + test.time_limit * 60 * 1000;
+      setEndsAt(targetEnd);
+      setTimeLeft(test.time_limit * 60);
     }
-  }, [step, test, timeLeft]);
+  }, [step, test, endsAt]);
 
   useEffect(() => {
-    if (step === "test" && timeLeft !== null && timeLeft > 0) {
-      const timerId = setTimeout(() => setTimeLeft(prev => prev! - 1), 1000);
-      return () => clearTimeout(timerId);
-    } else if (step === "test" && timeLeft === 0 && !isSubmitting) {
-      submitTest();
+    if (step === "test" && endsAt !== null) {
+      const updateRemaining = () => {
+        const remaining = Math.max(0, Math.floor((endsAt - Date.now()) / 1000));
+        setTimeLeft(remaining);
+        if (remaining === 0 && !isSubmitting) {
+          submitTest();
+        }
+      };
+      updateRemaining();
+      const intervalId = setInterval(updateRemaining, 1000);
+      return () => clearInterval(intervalId);
     }
-  }, [timeLeft, step, isSubmitting]);
+  }, [endsAt, step, isSubmitting]);
 
   // Anti-Cheat: Visibility change and window blur enforcement
   useEffect(() => {
@@ -156,15 +169,17 @@ export default function StudentTestPage({ params }: { params: { id: string } }) 
 
   const fetchTestData = async () => {
     try {
-      const [testRes, qRes] = await Promise.all([
-        supabase.from('tests').select('*').eq('id', params.id).single(),
-        supabase.from('questions').select('*').eq('test_id', params.id)
-      ]);
+      const res = await fetch(`/api/quiz/${params.id}`);
+      if (!res.ok) {
+        setLoading(false);
+        return;
+      }
+      const { test: fetchedTest, questions: fetchedQuestions } = await res.json();
 
-      if (testRes.data) setTest(testRes.data);
+      if (fetchedTest) setTest(fetchedTest);
 
-      if (qRes.data && qRes.data.length > 0) {
-        let ordered = [...qRes.data];
+      if (fetchedQuestions && fetchedQuestions.length > 0) {
+        let ordered = [...fetchedQuestions];
 
         // Check if there is a saved local session for this quiz
         try {
@@ -178,6 +193,7 @@ export default function StudentTestPage({ params }: { params: { id: string } }) 
               setStudentEmail(saved.studentEmail || "");
               setScore(saved.score || 0);
               setSubmissionId(saved.submissionId || null);
+              if (Array.isArray(saved.review)) setReview(saved.review);
               setQuestions(ordered);
               setStep("result");
 
@@ -196,9 +212,9 @@ export default function StudentTestPage({ params }: { params: { id: string } }) 
 
             // Restore consistent question ordering so questions don't jump around
             if (saved.questionOrder && Array.isArray(saved.questionOrder)) {
-              const map = new Map(qRes.data.map((q: any) => [q.id, q]));
+              const map = new Map(fetchedQuestions.map((q: any) => [q.id, q]));
               const restoredOrder = saved.questionOrder.map((id: string) => map.get(id)).filter(Boolean);
-              if (restoredOrder.length === qRes.data.length) {
+              if (restoredOrder.length === fetchedQuestions.length) {
                 ordered = restoredOrder;
               }
             }
@@ -210,7 +226,14 @@ export default function StudentTestPage({ params }: { params: { id: string } }) 
               setAnswers(saved.answers || {});
               setCurrentQuestionIndex(saved.currentQuestionIndex || 0);
               setFlagged(saved.flagged || {});
-              if (typeof saved.timeLeft === 'number') setTimeLeft(saved.timeLeft);
+              if (typeof saved.endsAt === 'number') {
+                setEndsAt(saved.endsAt);
+                setTimeLeft(Math.max(0, Math.floor((saved.endsAt - Date.now()) / 1000)));
+              } else if (typeof saved.timeLeft === 'number') {
+                const computedEnd = Date.now() + saved.timeLeft * 1000;
+                setEndsAt(computedEnd);
+                setTimeLeft(saved.timeLeft);
+              }
               if (typeof saved.cheatWarnings === 'number') setCheatWarnings(saved.cheatWarnings);
               setStep("test");
               setSessionRestored(true);
@@ -242,19 +265,14 @@ export default function StudentTestPage({ params }: { params: { id: string } }) 
 
     setIsCheckingSubmission(true);
     try {
-      // Duplicate submission guard: check if this student has already submitted this test
-      const { data: existingSub, error } = await supabase
-        .from('submissions')
-        .select('id, score, total_questions')
-        .eq('test_id', params.id)
-        .eq('student_email', cleanEmail)
-        .order('created_at', { ascending: false })
-        .limit(1);
+      const res = await fetch(`/api/quiz/${params.id}?email=${encodeURIComponent(cleanEmail)}`);
+      const checkData = await res.json();
 
-      if (existingSub && existingSub.length > 0) {
-        const sub = existingSub[0];
+      if (checkData.alreadySubmitted && checkData.submission) {
+        const sub = checkData.submission;
         setScore(sub.score);
         setSubmissionId(sub.id);
+        setLeaderboard(checkData.leaderboard || []);
         setStep("result");
 
         try {
@@ -267,14 +285,6 @@ export default function StudentTestPage({ params }: { params: { id: string } }) 
             step: "result"
           }));
         } catch (e) {}
-
-        const { data: lb } = await supabase
-          .from('submissions')
-          .select('student_name, score')
-          .eq('test_id', params.id)
-          .order('score', { ascending: false })
-          .limit(5);
-        if (lb) setLeaderboard(lb);
 
         alert(`You have already completed this test with a score of ${sub.score}/${sub.total_questions || questions.length}. Retakes are not permitted.`);
         setIsCheckingSubmission(false);
@@ -347,8 +357,10 @@ export default function StudentTestPage({ params }: { params: { id: string } }) 
       }
     } else if (key === 'F') {
       toggleFlag(currentQ.id);
-    } else if (e.key === 'Enter') {
+    } else if (e.key === 'Enter' || e.key === 'ArrowRight') {
       handleNext();
+    } else if (e.key === 'ArrowLeft') {
+      handlePrevious();
     }
   }, [step, questions, currentQuestionIndex, answers, showForceSubmitModal]);
 
@@ -362,40 +374,32 @@ export default function StudentTestPage({ params }: { params: { id: string } }) 
     setShowForceSubmitModal(false);
     setShowTabSwitchWarning(false);
     try {
-      let calculatedScore = 0;
-      questions.forEach(q => {
-        if (answers[q.id] === q.correct_answer) {
-          calculatedScore++;
-        }
-      });
-      setScore(calculatedScore);
-
       const finalSwitches = isAutoDisqualified ? Math.max(cheatWarnings, MAX_TAB_SWITCHES) : cheatWarnings;
-
-      // Embed proctoring telemetry in the submission payload
-      const submissionAnswers = {
-        ...answers,
-        _telemetry: {
-          tab_switches: finalSwitches,
-          disqualified_for_tab_switching: isAutoDisqualified,
-          completed_at: new Date().toISOString()
-        }
-      };
-
       const cleanEmail = studentEmail.trim().toLowerCase();
 
-      const { data } = await supabase.from('submissions').insert([{
-        test_id: test.id,
-        student_name: studentName,
-        student_email: cleanEmail,
-        score: calculatedScore,
-        total_questions: questions.length,
-        answers: submissionAnswers
-      }])
-      .select()
-      .single();
+      const res = await fetch('/api/submit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          testId: test.id,
+          studentName,
+          studentEmail: cleanEmail,
+          answers,
+          tabSwitches: finalSwitches,
+          disqualified: isAutoDisqualified,
+        }),
+      });
 
-      if (data) setSubmissionId(data.id);
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to submit assessment.');
+      }
+
+      const calculatedScore = data.score ?? 0;
+      setScore(calculatedScore);
+      if (data.submissionId) setSubmissionId(data.submissionId);
+      if (Array.isArray(data.leaderboard)) setLeaderboard(data.leaderboard);
+      if (Array.isArray(data.review)) setReview(data.review);
 
       // Save completed state to localStorage so retakes and refreshes permanently stay on result screen
       try {
@@ -403,7 +407,8 @@ export default function StudentTestPage({ params }: { params: { id: string } }) 
           studentName,
           studentEmail: cleanEmail,
           score: calculatedScore,
-          submissionId: data?.id,
+          submissionId: data.submissionId,
+          review: data.review || [],
           step: "result",
           isCompleted: true,
           disqualified: isAutoDisqualified,
@@ -412,20 +417,10 @@ export default function StudentTestPage({ params }: { params: { id: string } }) 
         }));
       } catch (e) {}
 
-      // Fetch Leaderboard
-      const { data: lbData } = await supabase
-        .from('submissions')
-        .select('student_name, score')
-        .eq('test_id', test.id)
-        .order('score', { ascending: false })
-        .limit(5);
-        
-      if (lbData) setLeaderboard(lbData);
-
       setStep("result");
-    } catch (err) {
+    } catch (err: any) {
       console.error("Error submitting test", err);
-      alert("There was an error submitting your test.");
+      alert(err.message || "There was an error submitting your test.");
     } finally {
       setIsSubmitting(false);
     }
@@ -614,32 +609,60 @@ export default function StudentTestPage({ params }: { params: { id: string } }) 
               onContextMenu={(e) => e.preventDefault()}
               style={{ userSelect: "none" }}
             >
-              {/* Question Navigation Dot Bar */}
-              <div className="flex items-center justify-center gap-1.5 mb-5 overflow-x-auto py-2">
-                {questions.map((q, idx) => {
-                  const isAnswered = !!answers[q.id];
-                  const isCurrent = idx === currentQuestionIndex;
-                  const isFlag = !!flagged[q.id];
+              {/* Question Filter & Navigation Dot Bar */}
+              <div className="mb-5 space-y-2.5">
+                {questions.length > 8 && (
+                  <div className="flex items-center justify-center gap-1.5">
+                    {[
+                      { id: 'all', label: `All (${questions.length})` },
+                      { id: 'unanswered', label: `Unanswered (${questions.length - answeredCount})` },
+                      { id: 'flagged', label: `Flagged (${Object.values(flagged).filter(Boolean).length})` }
+                    ].map((f) => (
+                      <button
+                        key={f.id}
+                        type="button"
+                        onClick={() => setDotFilter(f.id as any)}
+                        className={`px-3 py-1 rounded-full text-[11px] font-bold transition-all ${
+                          dotFilter === f.id
+                            ? 'bg-[#0c1322] text-white shadow-sm'
+                            : 'bg-white text-slate-600 border border-slate-200 hover:border-slate-300'
+                        }`}
+                      >
+                        {f.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
 
-                  return (
-                    <button
-                      key={q.id}
-                      onClick={() => setCurrentQuestionIndex(idx)}
-                      className={`w-7 h-7 rounded-full text-xs font-bold flex items-center justify-center transition-all ${
-                        isCurrent 
-                          ? 'ring-2 ring-[#0c1322] bg-[#0c1322] text-white scale-110 shadow-sm' 
-                          : isFlag
-                          ? 'bg-amber-500 text-white'
-                          : isAnswered
-                          ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
-                          : 'bg-white text-slate-600 border border-slate-200 hover:border-slate-400'
-                      }`}
-                      title={`Question ${idx + 1}`}
-                    >
-                      {idx + 1}
-                    </button>
-                  );
-                })}
+                <div className="flex items-center justify-center gap-1.5 flex-wrap py-1">
+                  {questions.map((q, idx) => {
+                    const isAnswered = !!answers[q.id];
+                    const isCurrent = idx === currentQuestionIndex;
+                    const isFlag = !!flagged[q.id];
+
+                    if (dotFilter === 'unanswered' && isAnswered && !isCurrent) return null;
+                    if (dotFilter === 'flagged' && !isFlag && !isCurrent) return null;
+
+                    return (
+                      <button
+                        key={q.id}
+                        onClick={() => setCurrentQuestionIndex(idx)}
+                        className={`w-7 h-7 rounded-full text-xs font-bold flex items-center justify-center transition-all ${
+                          isCurrent 
+                            ? 'ring-2 ring-[#0c1322] bg-[#0c1322] text-white scale-110 shadow-sm' 
+                            : isFlag
+                            ? 'bg-amber-500 text-white'
+                            : isAnswered
+                            ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                            : 'bg-white text-slate-600 border border-slate-200 hover:border-slate-400'
+                        }`}
+                        title={`Question ${idx + 1}`}
+                      >
+                        {idx + 1}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
 
               {/* Main Question Card */}
@@ -822,6 +845,37 @@ export default function StudentTestPage({ params }: { params: { id: string } }) 
                 </div>
               )}
               
+              {resultReleased && review.length > 0 && (
+                <div className="mb-6 text-left">
+                  <button
+                    type="button"
+                    onClick={() => setShowReview(prev => !prev)}
+                    className="w-full py-2.5 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 text-[#0c1322] font-bold text-xs flex items-center justify-between transition-colors"
+                  >
+                    <span>Review Your Answers ({review.filter(r => r.isCorrect).length}/{review.length} Correct)</span>
+                    <span>{showReview ? 'Hide ▲' : 'Show ▼'}</span>
+                  </button>
+
+                  {showReview && (
+                    <div className="mt-3 space-y-2.5 max-h-72 overflow-y-auto pr-1">
+                      {review.map((item, idx) => (
+                        <div key={item.id || idx} className={`p-3.5 rounded-xl border text-xs ${item.isCorrect ? 'bg-emerald-50/70 border-emerald-200' : 'bg-red-50/70 border-red-200'}`}>
+                          <p className="font-bold text-[#0c1322] mb-1.5">Q{idx + 1}. {item.questionText}</p>
+                          <p className="text-slate-600">
+                            Your answer: <span className={`font-bold ${item.isCorrect ? 'text-emerald-700' : 'text-red-700'}`}>{item.selectedAnswer || 'No answer'}</span>
+                          </p>
+                          {!item.isCorrect && (
+                            <p className="text-slate-600 mt-0.5">
+                              Correct answer: <span className="font-bold text-emerald-700">{item.correctAnswer}</span>
+                            </p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
               <Link href="/" className="inline-flex items-center gap-2 px-6 py-2.5 bg-[#0c1322] hover:bg-[#182542] text-white font-bold text-xs rounded-full transition-all shadow-sm">
                 Back to Homepage
               </Link>

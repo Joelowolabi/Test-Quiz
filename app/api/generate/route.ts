@@ -48,11 +48,19 @@ export async function POST(req: Request) {
           return html
             .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, ' ')
             .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, ' ')
+            .replace(/<noscript\b[^<]*(?:(?!<\/noscript>)<[^<]*)*<\/noscript>/gi, ' ')
             .replace(/<nav\b[^<]*(?:(?!<\/nav>)<[^<]*)*<\/nav>/gi, ' ')
+            .replace(/<aside\b[^<]*(?:(?!<\/aside>)<[^<]*)*<\/aside>/gi, ' ')
             .replace(/<footer\b[^<]*(?:(?!<\/footer>)<[^<]*)*<\/footer>/gi, ' ')
             .replace(/<header\b[^<]*(?:(?!<\/header>)<[^<]*)*<\/header>/gi, ' ')
             .replace(/<[^>]+>/g, ' ')
-            .replace(/&[a-z0-9]+;/gi, ' ')
+            .replace(/&nbsp;/gi, ' ')
+            .replace(/&amp;/gi, '&')
+            .replace(/&quot;/gi, '"')
+            .replace(/&#39;|&apos;/gi, "'")
+            .replace(/&lt;/gi, '<')
+            .replace(/&gt;/gi, '>')
+            .replace(/&[a-z0-9#]+;/gi, ' ')
             .replace(/\s+/g, ' ')
             .trim();
         });
@@ -158,7 +166,14 @@ export async function POST(req: Request) {
         generateBatch(b1Count, "Focus primarily on key foundational concepts, definitions, and early sections."),
         generateBatch(b2Count, "Focus primarily on advanced applications, processes, implications, and concluding sections.")
       ]);
-      questions = [...(Array.isArray(b1) ? b1 : []), ...(Array.isArray(b2) ? b2 : [])];
+      const combined = [...(Array.isArray(b1) ? b1 : []), ...(Array.isArray(b2) ? b2 : [])];
+      const seen = new Set<string>();
+      questions = combined.filter((q: any) => {
+        const key = String(q?.question || '').trim().toLowerCase();
+        if (!key || seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
     }
 
     return NextResponse.json({ questions });

@@ -20,34 +20,17 @@ export default function LoginPage() {
     setError("");
 
     try {
-      // 1. Attempt login with the provided credentials
-      const { data, error: loginError } = await supabase.auth.signInWithPassword({
+      const { error: loginError } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
       if (loginError) {
-        // 2. If password is the master "admin123", attempt to automatically register the user
-        if (password === "admin123") {
-          const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-            email,
-            password,
-          });
-
-          if (signUpError) {
-            throw signUpError;
-          }
-
-          // If signup is successful, proceed to set local states and redirect
-          sessionStorage.setItem("teacher_auth", "true");
-          router.push("/dashboard");
-        } else {
-          throw loginError;
-        }
-      } else {
-        sessionStorage.setItem("teacher_auth", "true");
-        router.push("/dashboard");
+        throw loginError;
       }
+
+      sessionStorage.setItem("teacher_auth", "true");
+      router.push("/dashboard");
     } catch (err: any) {
       setError(err.message || "Invalid login credentials.");
       setLoading(false);

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
-import { Copy, CheckCircle2, ArrowLeft, Users, BarChart3, Clock, Download, Printer, KeyRound, ShieldAlert, ShieldCheck, Loader2 } from "lucide-react";
+import { Copy, CheckCircle2, ArrowLeft, Users, BarChart3, Clock, Download, Printer, KeyRound, ShieldAlert, ShieldCheck, Loader2, Pencil, Trash2, RefreshCw, Plus, Radio, Save, X } from "lucide-react";
 import Link from "next/link";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import { uuidToPin, formatPin } from "@/lib/pin";
@@ -15,6 +15,23 @@ export default function TestDetailDashboard({ params }: { params: { id: string }
   const [copiedLink, setCopiedLink] = useState(false);
   const [copiedPin, setCopiedPin] = useState(false);
   const [expandedSubmission, setExpandedSubmission] = useState<string | null>(null);
+  const [liveMonitor, setLiveMonitor] = useState(true);
+
+  // Question editing / management state
+  const [editingQId, setEditingQId] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState<{ question_text: string; options: string[]; correct_answer: string }>({
+    question_text: "",
+    options: ["", "", "", ""],
+    correct_answer: "",
+  });
+  const [savingQ, setSavingQ] = useState(false);
+  const [regeneratingQId, setRegeneratingQId] = useState<string | null>(null);
+  const [isAddingQ, setIsAddingQ] = useState(false);
+  const [newQForm, setNewQForm] = useState({
+    question_text: "",
+    options: ["", "", "", ""],
+    correct_answer: "",
+  });
 
   const pin = uuidToPin(params.id);
   const formattedPin = formatPin(pin);
@@ -22,6 +39,24 @@ export default function TestDetailDashboard({ params }: { params: { id: string }
   useEffect(() => {
     fetchTestData();
   }, [params.id]);
+
+  // Live Classroom Monitor: poll submissions every 10s when enabled
+  useEffect(() => {
+    if (!liveMonitor) return;
+    const interval = setInterval(async () => {
+      try {
+        const { data } = await supabase
+          .from('submissions')
+          .select('*')
+          .eq('test_id', params.id)
+          .order('created_at', { ascending: false });
+        if (data) setSubmissions(data);
+      } catch (e) {
+        // Silent background refresh
+      }
+    }, 10000);
+    return () => clearInterval(interval);
+  }, [liveMonitor, params.id]);
 
   const fetchTestData = async () => {
     try {
@@ -54,6 +89,128 @@ export default function TestDetailDashboard({ params }: { params: { id: string }
       ));
     } catch (err) {
       console.error("Error granting access", err);
+    }
+  };
+
+  const startEditQuestion = (q: any) => {
+    setEditingQId(q.id);
+    setEditForm({
+      question_text: q.question_text,
+      options: Array.isArray(q.options) ? [...q.options] : ["", "", "", ""],
+      correct_answer: q.correct_answer,
+    });
+  };
+
+  const saveQuestionEdit = async (qId: string) => {
+    if (!editForm.question_text.trim() || editForm.options.some(o => !o.trim()) || !editForm.correct_answer) {
+      alert("Please fill in the question, all options, and select the correct answer.");
+      return;
+    }
+    setSavingQ(true);
+    try {
+      const { error } = await supabase
+        .from('questions')
+        .update({
+          question_text: editForm.question_text.trim(),
+          options: editForm.options.map(o => o.trim()),
+          correct_answer: editForm.correct_answer,
+        })
+        .eq('id', qId);
+
+      if (error) throw error;
+      setQuestions(prev => prev.map(q => q.id === qId ? { ...q, ...editForm } : q));
+      setEditingQId(null);
+    } catch (err: any) {
+      alert(err.message || "Failed to update question.");
+    } finally {
+      setSavingQ(false);
+    }
+  };
+
+  const deleteQuestion = async (qId: string) => {
+    if (!confirm("Delete this question from the quiz?")) return;
+    try {
+      const { error } = await supabase.from('questions').delete().eq('id', qId);
+      if (error) throw error;
+      setQuestions(prev => prev.filter(q => q.id !== qId));
+    } catch (err: any) {
+      alert(err.message || "Failed to delete question.");
+    }
+  };
+
+  const regenerateQuestion = async (q: any) => {
+    setRegeneratingQId(q.id);
+    try {
+      const contextText = test?.source_content && !test.source_content.startsWith('Uploaded File') && test.source_content !== 'Manually Created'
+        ? `${test.source_content}\n\nGenerate 1 brand-new alternative question (different from: "${q.question_text}").`
+        : `Topic: ${test?.title || 'General Knowledge'}. Generate 1 brand-new question at the same level as: "${q.question_text}".`;
+
+      const res = await fetch('/api/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          text: contextText,
+          count: 1,
+          type: 'text',
+          difficulty: 'Medium',
+          questionType: q.options?.length === 2 ? 'True/False' : 'Multiple Choice',
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.questions?.[0]) {
+        throw new Error(data.error || "Failed to regenerate question.");
+      }
+
+      const newQ = data.questions[0];
+      const { error } = await supabase
+        .from('questions')
+        .update({
+          question_text: newQ.question,
+          options: newQ.options,
+          correct_answer: newQ.correctAnswer,
+        })
+        .eq('id', q.id);
+
+      if (error) throw error;
+      setQuestions(prev => prev.map(item => item.id === q.id ? {
+        ...item,
+        question_text: newQ.question,
+        options: newQ.options,
+        correct_answer: newQ.correctAnswer,
+      } : item));
+    } catch (err: any) {
+      alert(err.message || "Failed to regenerate question.");
+    } finally {
+      setRegeneratingQId(null);
+    }
+  };
+
+  const addNewQuestion = async () => {
+    if (!newQForm.question_text.trim() || newQForm.options.some(o => !o.trim()) || !newQForm.correct_answer) {
+      alert("Please fill in the question, all 4 options, and select the correct answer.");
+      return;
+    }
+    setSavingQ(true);
+    try {
+      const { data, error } = await supabase
+        .from('questions')
+        .insert([{
+          test_id: params.id,
+          question_text: newQForm.question_text.trim(),
+          options: newQForm.options.map(o => o.trim()),
+          correct_answer: newQForm.correct_answer,
+        }])
+        .select()
+        .single();
+
+      if (error) throw error;
+      if (data) setQuestions(prev => [...prev, data]);
+      setNewQForm({ question_text: "", options: ["", "", "", ""], correct_answer: "" });
+      setIsAddingQ(false);
+    } catch (err: any) {
+      alert(err.message || "Failed to add question.");
+    } finally {
+      setSavingQ(false);
     }
   };
 
@@ -326,6 +483,19 @@ export default function TestDetailDashboard({ params }: { params: { id: string }
             <span className="flex items-center gap-2">
               <Users size={18} className="text-[#0c1322]" /> Student Submissions ({submissions.length})
             </span>
+            <button
+              type="button"
+              onClick={() => setLiveMonitor(prev => !prev)}
+              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold border transition-all ${
+                liveMonitor
+                  ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                  : 'bg-slate-100 text-slate-500 border-slate-200'
+              }`}
+              title="Toggle 10-second live auto-refresh"
+            >
+              <Radio size={11} className={liveMonitor ? 'animate-pulse text-emerald-600' : ''} />
+              {liveMonitor ? 'Live (10s)' : 'Paused'}
+            </button>
           </h3>
           
           {submissions.length === 0 ? (
@@ -430,28 +600,177 @@ export default function TestDetailDashboard({ params }: { params: { id: string }
             <hr className="border-gray-300" />
           </div>
 
-          <h3 className="text-base font-extrabold mb-5 flex items-center gap-2 text-[#0c1322] print:hidden">
-            <CheckCircle2 size={18} className="text-[#0c1322]" /> Test Questions ({questions.length})
-          </h3>
+          <div className="flex items-center justify-between mb-5 print:hidden">
+            <h3 className="text-base font-extrabold flex items-center gap-2 text-[#0c1322]">
+              <CheckCircle2 size={18} className="text-[#0c1322]" /> Test Questions ({questions.length})
+            </h3>
+            <button
+              type="button"
+              onClick={() => setIsAddingQ(prev => !prev)}
+              className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-[#0c1322] hover:bg-[#182542] text-white text-xs font-bold transition-all"
+            >
+              {isAddingQ ? <><X size={12} /> Cancel</> : <><Plus size={12} /> Add Question</>}
+            </button>
+          </div>
+
+          {isAddingQ && (
+            <div className="mb-4 p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-2.5 print:hidden">
+              <p className="text-xs font-extrabold text-[#0c1322] uppercase tracking-wider">Add New Question</p>
+              <input
+                type="text"
+                value={newQForm.question_text}
+                onChange={(e) => setNewQForm({ ...newQForm, question_text: e.target.value })}
+                placeholder="Question text..."
+                className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-medium text-slate-900 outline-none focus:border-[#0c1322]"
+              />
+              <div className="grid grid-cols-2 gap-2">
+                {newQForm.options.map((opt, idx) => (
+                  <input
+                    key={idx}
+                    type="text"
+                    value={opt}
+                    onChange={(e) => {
+                      const updated = [...newQForm.options];
+                      updated[idx] = e.target.value;
+                      setNewQForm({ ...newQForm, options: updated });
+                    }}
+                    placeholder={`Option ${idx + 1}`}
+                    className="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-medium text-slate-900 outline-none focus:border-[#0c1322]"
+                  />
+                ))}
+              </div>
+              <div className="flex items-center gap-2">
+                <select
+                  value={newQForm.correct_answer}
+                  onChange={(e) => setNewQForm({ ...newQForm, correct_answer: e.target.value })}
+                  className="flex-1 px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-900 outline-none focus:border-[#0c1322]"
+                >
+                  <option value="">Select Correct Answer</option>
+                  {newQForm.options.map((opt, idx) => (
+                    <option key={idx} value={opt}>{opt || `Option ${idx + 1}`}</option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  onClick={addNewQuestion}
+                  disabled={savingQ}
+                  className="px-4 py-1.5 bg-[#0c1322] text-white rounded-lg text-xs font-bold hover:bg-[#182542] disabled:opacity-50"
+                >
+                  {savingQ ? 'Saving...' : 'Save'}
+                </button>
+              </div>
+            </div>
+          )}
           
           <div className="space-y-3.5 max-h-[550px] overflow-y-auto pr-1 print:max-h-none print:overflow-visible">
-            {questions.map((q, i) => (
-              <div key={q.id} className="p-4 bg-slate-50/70 border border-slate-200/80 rounded-2xl print:border-b print:border-gray-200 print:bg-white print:text-black print:rounded-none">
-                <p className="font-extrabold text-xs sm:text-sm mb-3 text-slate-900 print:text-black leading-relaxed">
-                  <span className="text-[#0c1322] mr-1.5 font-black">Q{i+1}.</span>{q.question_text}
-                </p>
-                <div className="space-y-1.5 pl-4">
-                  {q.options.map((opt: string, j: number) => {
-                    const letter = String.fromCharCode(65 + j);
-                    return (
-                      <div key={j} className={`text-xs px-3 py-1.5 rounded-lg font-medium flex items-center gap-2 ${opt === q.correct_answer ? 'bg-emerald-100 text-emerald-900 font-bold border border-emerald-300' : 'bg-white text-slate-600 border border-slate-200'}`}>
-                        <span className="font-bold">{letter}.</span> {opt}
+            {questions.map((q, i) => {
+              const isEditing = editingQId === q.id;
+              const isRegenerating = regeneratingQId === q.id;
+
+              return (
+                <div key={q.id} className="p-4 bg-slate-50/70 border border-slate-200/80 rounded-2xl print:border-b print:border-gray-200 print:bg-white print:text-black print:rounded-none">
+                  {isEditing ? (
+                    <div className="space-y-2.5 print:hidden">
+                      <div className="flex justify-between items-center">
+                        <span className="text-xs font-extrabold text-[#0c1322]">Editing Q{i + 1}</span>
+                        <button type="button" onClick={() => setEditingQId(null)} className="text-xs font-bold text-slate-500 hover:text-slate-800">Cancel</button>
                       </div>
-                    );
-                  })}
+                      <input
+                        type="text"
+                        value={editForm.question_text}
+                        onChange={(e) => setEditForm({ ...editForm, question_text: e.target.value })}
+                        className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 outline-none focus:border-[#0c1322]"
+                      />
+                      <div className="grid grid-cols-2 gap-2">
+                        {editForm.options.map((opt, idx) => (
+                          <input
+                            key={idx}
+                            type="text"
+                            value={opt}
+                            onChange={(e) => {
+                              const updated = [...editForm.options];
+                              const oldVal = updated[idx];
+                              updated[idx] = e.target.value;
+                              setEditForm({
+                                ...editForm,
+                                options: updated,
+                                correct_answer: editForm.correct_answer === oldVal ? e.target.value : editForm.correct_answer,
+                              });
+                            }}
+                            className="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-medium text-slate-900 outline-none focus:border-[#0c1322]"
+                          />
+                        ))}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <select
+                          value={editForm.correct_answer}
+                          onChange={(e) => setEditForm({ ...editForm, correct_answer: e.target.value })}
+                          className="flex-1 px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-900 outline-none focus:border-[#0c1322]"
+                        >
+                          <option value="">Select Correct Answer</option>
+                          {editForm.options.map((opt, idx) => (
+                            <option key={idx} value={opt}>{opt || `Option ${idx + 1}`}</option>
+                          ))}
+                        </select>
+                        <button
+                          type="button"
+                          onClick={() => saveQuestionEdit(q.id)}
+                          disabled={savingQ}
+                          className="inline-flex items-center gap-1 px-3.5 py-1.5 bg-[#0c1322] text-white rounded-lg text-xs font-bold hover:bg-[#182542] disabled:opacity-50"
+                        >
+                          <Save size={12} /> {savingQ ? 'Saving...' : 'Save'}
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="flex justify-between items-start gap-2 mb-3">
+                        <p className="font-extrabold text-xs sm:text-sm text-slate-900 print:text-black leading-relaxed">
+                          <span className="text-[#0c1322] mr-1.5 font-black">Q{i+1}.</span>{q.question_text}
+                        </p>
+                        <div className="flex items-center gap-1 flex-shrink-0 print:hidden">
+                          <button
+                            type="button"
+                            onClick={() => regenerateQuestion(q)}
+                            disabled={isRegenerating}
+                            className="p-1.5 text-slate-500 hover:text-amber-700 hover:bg-amber-50 rounded-lg transition-colors disabled:opacity-40"
+                            title="Regenerate question with AI"
+                          >
+                            <RefreshCw size={13} className={isRegenerating ? 'animate-spin' : ''} />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => startEditQuestion(q)}
+                            className="p-1.5 text-slate-500 hover:text-[#0c1322] hover:bg-slate-200/70 rounded-lg transition-colors"
+                            title="Edit question"
+                          >
+                            <Pencil size={13} />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => deleteQuestion(q.id)}
+                            className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                            title="Delete question"
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
+                      </div>
+                      <div className="space-y-1.5 pl-4">
+                        {q.options.map((opt: string, j: number) => {
+                          const letter = String.fromCharCode(65 + j);
+                          return (
+                            <div key={j} className={`text-xs px-3 py-1.5 rounded-lg font-medium flex items-center gap-2 ${opt === q.correct_answer ? 'bg-emerald-100 text-emerald-900 font-bold border border-emerald-300' : 'bg-white text-slate-600 border border-slate-200'}`}>
+                              <span className="font-bold">{letter}.</span> {opt}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </>
+                  )}
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       </div>

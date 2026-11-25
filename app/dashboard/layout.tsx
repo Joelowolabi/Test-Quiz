@@ -64,10 +64,10 @@ export default function DashboardLayout({
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-young-black flex items-center justify-center p-4">
+      <div className="min-h-screen bg-[#f8fafc] flex items-center justify-center p-4 font-sans">
         <div className="text-center">
-          <Loader2 className="animate-spin text-young-purple mx-auto mb-4" size={40} />
-          <p className="text-gray-400 font-medium">Verifying session...</p>
+          <Loader2 className="animate-spin text-[#0c1322] mx-auto mb-3" size={32} />
+          <p className="text-slate-500 text-xs font-bold uppercase tracking-wider">Verifying session...</p>
         </div>
       </div>
     );

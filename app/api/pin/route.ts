@@ -7,14 +7,16 @@ export const dynamic = 'force-dynamic';
 export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
-    const code = searchParams.get('code')?.trim().replace(/\s+/g, '');
+    const rawCode = searchParams.get('code')?.trim() || '';
+    const isFullUuid = rawCode.includes('-') && rawCode.length >= 32;
+    const code = isFullUuid ? rawCode : rawCode.replace(/[\s-]+/g, '');
 
     if (!code) {
       return NextResponse.json({ error: 'Please enter a valid PIN or test code.' }, { status: 400 });
     }
 
     // 1. If it looks like a UUID, search directly
-    if (code.includes('-') && code.length >= 32) {
+    if (isFullUuid) {
       const { data } = await supabase.from('tests').select('id, title').eq('id', code).single();
       if (data) {
         return NextResponse.json({ testId: data.id, title: data.title });
@@ -26,7 +28,7 @@ export async function GET(req: Request) {
       .from('tests')
       .select('id, title')
       .order('created_at', { ascending: false })
-      .limit(500);
+      .limit(1000);
 
     if (error || !tests) {
       console.error('Supabase error fetching tests in pin route:', error);

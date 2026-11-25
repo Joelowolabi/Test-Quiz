@@ -12,13 +12,8 @@ export default function DashboardPage() {
   const [tests, setTests] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
-  const [folders, setFolders] = useState<any[]>([]);
-  const [selectedFolder, setSelectedFolder] = useState<string | null>(null);
-  const [selectedStatus, setSelectedStatus] = useState<string>("published");
-  const [newFolderName, setNewFolderName] = useState("");
-  const [isCreatingFolder, setIsCreatingFolder] = useState(false);
-  const [targetFolder, setTargetFolder] = useState<string | null>(null);
-  const [targetStatus, setTargetStatus] = useState<string>("published");
+  const [sortBy, setSortBy] = useState<"newest" | "oldest" | "submissions" | "timed">("newest");
+  const [selectedFileName, setSelectedFileName] = useState<string>("");
   const [searchQuery, setSearchQuery] = useState("");
   const [copiedPinId, setCopiedPinId] = useState<string | null>(null);
 
@@ -61,7 +56,6 @@ export default function DashboardPage() {
         if (session) {
           setUser(session.user);
           fetchTests(session.user.id);
-          fetchFolders(session.user.id);
         } else {
           const auth = sessionStorage.getItem("teacher_auth");
           if (auth !== "true") {
@@ -70,7 +64,6 @@ export default function DashboardPage() {
             const mockUser = { id: "00000000-0000-0000-0000-000000000000", email: "teacher@example.com" };
             setUser(mockUser);
             fetchTests(mockUser.id);
-            fetchFolders(mockUser.id);
           }
         }
       } catch (err) {
@@ -94,45 +87,6 @@ export default function DashboardPage() {
       console.error("Error fetching tests:", err);
     } finally {
       setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    if (user) {
-      fetchTests(user.id);
-    }
-  }, [selectedStatus, selectedFolder]);
-
-  const fetchFolders = async (userId: string) => {
-    try {
-      const { data, error } = await supabase
-        .from('folders')
-        .select('*')
-        .eq('user_id', userId)
-        .order('created_at', { ascending: false });
-        
-      if (error) throw error;
-      setFolders(data || []);
-    } catch (err: any) {
-      console.error("Error fetching folders:", err);
-    }
-  };
-
-  const handleCreateFolder = async () => {
-    if (!newFolderName.trim()) return;
-    try {
-      const { data, error } = await supabase
-        .from('folders')
-        .insert([{ name: newFolderName, user_id: user.id }])
-        .select()
-        .single();
-        
-      if (error) throw error;
-      setFolders([data, ...folders]);
-      setNewFolderName("");
-      setIsCreatingFolder(false);
-    } catch (err: any) {
-      console.error("Error creating folder:", err);
     }
   };
 
@@ -428,20 +382,30 @@ export default function DashboardPage() {
                     accept="application/pdf, text/plain"
                     onChange={(e) => {
                       const file = e.target.files?.[0];
-                      if (file) {
-                        const reader = new FileReader();
-                        reader.onloadend = () => {
-                          const base64 = reader.result?.toString().split(',')[1];
-                          if (base64) {
-                            setSourceContent(JSON.stringify({ fileBase64: base64, mimeType: file.type }));
-                          }
-                        };
-                        reader.readAsDataURL(file);
+                      if (!file) return;
+                      if (file.size > 3.5 * 1024 * 1024) {
+                        setError("File is too large. Please upload a PDF or text file under 3.5MB.");
+                        setSelectedFileName("");
+                        setSourceContent("");
+                        e.target.value = "";
+                        return;
                       }
+                      setError("");
+                      setSelectedFileName(file.name);
+                      const reader = new FileReader();
+                      reader.onloadend = () => {
+                        const base64 = reader.result?.toString().split(',')[1];
+                        if (base64) {
+                          setSourceContent(JSON.stringify({ fileBase64: base64, mimeType: file.type || "application/pdf" }));
+                        }
+                      };
+                      reader.readAsDataURL(file);
                     }}
                     className="w-full text-xs text-slate-600 file:mr-3 file:py-1.5 file:px-3 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-[#0c1322] file:text-white hover:file:bg-[#182542] cursor-pointer"
                   />
-                  <p className="text-[11px] text-slate-400 mt-2 font-medium">Supports PDF slides or text files up to 10MB</p>
+                  <p className="text-[11px] text-slate-500 mt-2 font-medium">
+                    {selectedFileName ? `Selected: ${selectedFileName}` : "Supports PDF slides or .txt files up to 3.5MB"}
+                  </p>
                 </div>
               )}
             </div>
@@ -536,22 +500,27 @@ export default function DashboardPage() {
 
         {/* Right Column: Existing Tests List */}
         <div className="md:col-span-2 space-y-5">
-          {/* Controls: Status Tabs, Search, and Folders */}
-          <div className="bg-white p-4 rounded-2xl border border-slate-200/90 shadow-sm space-y-3.5">
+          {/* Controls: Sort / Filter Pills & Search */}
+          <div className="bg-white p-4 rounded-2xl border border-slate-200/90 shadow-sm">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-              {/* Segmented Status Filter */}
-              <div className="flex bg-slate-100 p-1 rounded-xl">
-                {['published', 'draft', 'archived'].map((status) => (
+              {/* Working Sort & Filter Pills */}
+              <div className="flex flex-wrap bg-slate-100 p-1 rounded-xl gap-1">
+                {[
+                  { id: 'newest', label: 'Newest' },
+                  { id: 'submissions', label: 'Most Active' },
+                  { id: 'timed', label: 'Timed Only' },
+                  { id: 'oldest', label: 'Oldest' }
+                ].map((opt) => (
                   <button
-                    key={status}
-                    onClick={() => setSelectedStatus(status)}
-                    className={`px-3 py-1.5 rounded-lg font-bold text-xs uppercase tracking-wider transition-all ${
-                      selectedStatus === status 
+                    key={opt.id}
+                    onClick={() => setSortBy(opt.id as any)}
+                    className={`px-3 py-1.5 rounded-lg font-bold text-xs transition-all ${
+                      sortBy === opt.id 
                         ? 'bg-white text-[#0c1322] shadow-sm' 
                         : 'text-slate-600 hover:text-slate-900'
                     }`}
                   >
-                    {status}
+                    {opt.label}
                   </button>
                 ))}
               </div>
@@ -567,65 +536,6 @@ export default function DashboardPage() {
                   className="w-full pl-9 pr-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:bg-white focus:border-[#0c1322] outline-none placeholder:text-slate-400 font-medium"
                 />
               </div>
-            </div>
-
-            {/* Folders Filter */}
-            <div className="flex items-center gap-2 overflow-x-auto pb-1 pt-1 border-t border-slate-100">
-              <button
-                onClick={() => setSelectedFolder(null)}
-                className={`px-3.5 py-1 rounded-full text-xs font-bold whitespace-nowrap transition-all ${
-                  selectedFolder === null 
-                    ? 'bg-[#0c1322] text-white shadow-sm' 
-                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                }`}
-              >
-                All Quizzes
-              </button>
-              {folders.map((folder) => (
-                <button
-                  key={folder.id}
-                  onClick={() => setSelectedFolder(folder.id)}
-                  className={`px-3.5 py-1 rounded-full text-xs font-semibold whitespace-nowrap transition-all ${
-                    selectedFolder === folder.id 
-                      ? 'bg-[#0c1322] text-white shadow-sm' 
-                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                  }`}
-                >
-                  📁 {folder.name}
-                </button>
-              ))}
-              
-              {/* Create Folder Trigger */}
-              {isCreatingFolder ? (
-                <div className="flex items-center gap-1.5">
-                  <input
-                    type="text"
-                    value={newFolderName}
-                    onChange={(e) => setNewFolderName(e.target.value)}
-                    className="px-2.5 py-1 bg-white text-slate-900 border border-slate-300 rounded-lg text-xs focus:border-[#0c1322] outline-none"
-                    placeholder="Folder name..."
-                  />
-                  <button
-                    onClick={handleCreateFolder}
-                    className="p-1 bg-[#0c1322] text-white rounded-lg hover:bg-[#182542]"
-                  >
-                    <Plus size={13} />
-                  </button>
-                  <button
-                    onClick={() => setIsCreatingFolder(false)}
-                    className="p-1 text-slate-400 hover:text-slate-700"
-                  >
-                    ✕
-                  </button>
-                </div>
-              ) : (
-                <button
-                  onClick={() => setIsCreatingFolder(true)}
-                  className="px-3 py-1 rounded-full text-xs font-bold text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 flex items-center gap-1 transition-colors"
-                >
-                  <Plus size={12} /> New Folder
-                </button>
-              )}
             </div>
           </div>
 
@@ -648,6 +558,16 @@ export default function DashboardPage() {
             <div className="grid sm:grid-cols-2 gap-4">
               {tests
                 .filter(t => t.title.toLowerCase().includes(searchQuery.toLowerCase()))
+                .filter(t => sortBy !== 'timed' || t.time_limit > 0)
+                .sort((a, b) => {
+                  if (sortBy === 'oldest') {
+                    return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+                  }
+                  if (sortBy === 'submissions') {
+                    return (b.submissions?.[0]?.count || 0) - (a.submissions?.[0]?.count || 0);
+                  }
+                  return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+                })
                 .map((test) => {
                   const testPin = uuidToPin(test.id);
                   const isCopied = copiedPinId === test.id;
