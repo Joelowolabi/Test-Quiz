@@ -45,8 +45,17 @@ export default function DashboardPage() {
   const [questionCount, setQuestionCount] = useState(5);
   const [timeLimit, setTimeLimit] = useState(0); // 0 = no limit
   const [difficulty, setDifficulty] = useState("Medium");
-  const [questionType, setQuestionType] = useState("Multiple Choice");
+  const [questionTypes, setQuestionTypes] = useState<string[]>(["Multiple Choice"]);
   const [isGenerating, setIsGenerating] = useState(false);
+
+  const toggleQuestionType = (type: string) => {
+    setQuestionTypes((prev) => {
+      if (prev.includes(type)) {
+        return prev.length > 1 ? prev.filter((t) => t !== type) : prev;
+      }
+      return [...prev, type];
+    });
+  };
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -121,7 +130,8 @@ export default function DashboardPage() {
             count: questionCount,
             type: sourceType,
             difficulty,
-            questionType
+            questionTypes,
+            questionType: questionTypes.join(", ")
           })
         });
 
@@ -411,37 +421,51 @@ export default function DashboardPage() {
             </div>
 
             <div className="space-y-3.5">
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Difficulty</label>
-                  <select
-                    value={difficulty}
-                    onChange={(e) => setDifficulty(e.target.value)}
-                    className="w-full px-3 py-2 bg-slate-50/70 text-slate-900 border border-slate-200 rounded-xl focus:bg-white focus:border-[#0c1322] outline-none text-xs font-medium"
-                  >
-                    <option value="Very Easy">Very Easy</option>
-                    <option value="Easy">Easy</option>
-                    <option value="Medium">Medium</option>
-                    <option value="Hard">Hard</option>
-                    <option value="Expert">Expert</option>
-                    <option value="Master (Insane)">Master (Insane)</option>
-                  </select>
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Difficulty</label>
+                <select
+                  value={difficulty}
+                  onChange={(e) => setDifficulty(e.target.value)}
+                  className="w-full px-3 py-2 bg-slate-50/70 text-slate-900 border border-slate-200 rounded-xl focus:bg-white focus:border-[#0c1322] outline-none text-xs font-medium"
+                >
+                  <option value="Very Easy">Very Easy</option>
+                  <option value="Easy">Easy</option>
+                  <option value="Medium">Medium</option>
+                  <option value="Hard">Hard</option>
+                  <option value="Expert">Expert</option>
+                  <option value="Master (Insane)">Master (Insane)</option>
+                </select>
+              </div>
+              
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">Question Types</label>
+                  <span className="text-[11px] font-semibold text-slate-400">Select 1 or more</span>
                 </div>
-                
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Question Type</label>
-                  <select
-                    value={questionType}
-                    onChange={(e) => setQuestionType(e.target.value)}
-                    className="w-full px-3 py-2 bg-slate-50/70 text-slate-900 border border-slate-200 rounded-xl focus:bg-white focus:border-[#0c1322] outline-none text-xs font-medium"
-                  >
-                    <option value="Multiple Choice">Multiple Choice</option>
-                    <option value="True/False">True/False</option>
-                    <option value="Mixed">Mixed</option>
-                    <option value="Fill in the Blanks">Fill in the Blanks</option>
-                    <option value="Scenario-based">Scenario-based</option>
-                    <option value="Definition matching">Definition matching</option>
-                  </select>
+                <div className="flex flex-wrap gap-1.5">
+                  {[
+                    "Multiple Choice",
+                    "True/False",
+                    "Fill in the Blanks",
+                    "Scenario-based",
+                    "Definition matching",
+                  ].map((type) => {
+                    const active = questionTypes.includes(type);
+                    return (
+                      <button
+                        key={type}
+                        type="button"
+                        onClick={() => toggleQuestionType(type)}
+                        className={`px-2.5 py-1.5 rounded-lg text-[11px] font-bold border transition-all ${
+                          active
+                            ? "bg-[#0c1322] text-white border-[#0c1322] shadow-sm"
+                            : "bg-slate-50 text-slate-600 border-slate-200 hover:border-slate-300 hover:text-slate-900"
+                        }`}
+                      >
+                        {active ? "✓ " : ""}{type}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 

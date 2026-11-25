@@ -11,7 +11,7 @@ export async function POST(req: Request) {
     const body = await req.json();
     text = body.text;
     count = body.count;
-    const { type, difficulty, questionType } = body;
+    const { type, difficulty, questionType, questionTypes } = body;
 
     if (!text) {
       return NextResponse.json({ error: 'Missing source content' }, { status: 400 });
@@ -95,22 +95,32 @@ export async function POST(req: Request) {
     }
 
     const diffLevel = difficulty || "Medium";
-    const qType = questionType || "Multiple Choice";
     // Cap question count to a safe maximum of 80 per generation request
     const safeCount = Math.min(Math.max(Number(count) || 5, 1), 80);
-    
-    let typeInstructions = "multiple-choice questions";
-    if (qType === "True/False") {
-      typeInstructions = "True/False questions (options must be exactly ['True', 'False'])";
-    } else if (qType === "Mixed") {
-      typeInstructions = "a mix of multiple-choice and True/False questions";
-    } else if (qType === "Fill in the Blanks") {
-      typeInstructions = "fill-in-the-blank questions (format the question with a '______' and provide 4 multiple-choice options to fill it)";
-    } else if (qType === "Scenario-based") {
-      typeInstructions = "scenario-based multiple-choice questions (create a short, real-world scenario before asking the question)";
-    } else if (qType === "Definition matching") {
-      typeInstructions = "definition-matching multiple-choice questions (ask to match a term to its definition or vice versa)";
-    }
+
+    const selectedTypes: string[] = Array.isArray(questionTypes) && questionTypes.length > 0
+      ? questionTypes
+      : questionType === "Mixed"
+      ? ["Multiple Choice", "True/False"]
+      : questionType
+      ? String(questionType).split(",").map((s) => s.trim()).filter(Boolean)
+      : ["Multiple Choice"];
+
+    const typeInstructionMap: Record<string, string> = {
+      "Multiple Choice": "standard 4-option multiple-choice questions",
+      "True/False": "True/False questions (options must be exactly ['True', 'False'])",
+      "Fill in the Blanks": "fill-in-the-blank questions (include '______' in the question and provide 4 multiple-choice options to fill it)",
+      "Scenario-based": "scenario-based multiple-choice questions (present a short real-world scenario before asking the question, with 4 options)",
+      "Definition matching": "definition-matching multiple-choice questions (ask to match a key term to its definition or vice versa, with 4 options)",
+    };
+
+    const mappedInstructions = selectedTypes
+      .map((t) => typeInstructionMap[t] || t)
+      .join("; ");
+
+    const typeInstructions = selectedTypes.length > 1
+      ? `a balanced mix of the following question types (${mappedInstructions}), distributing the ${safeCount} questions evenly across all selected types`
+      : mappedInstructions;
 
     const generateBatch = async (batchCount: number, focusGuide: string) => {
       const prompt = `
