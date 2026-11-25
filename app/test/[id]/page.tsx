@@ -34,6 +34,7 @@ export default function StudentTestPage({ params }: { params: { id: string } }) 
   const [dotFilter, setDotFilter] = useState<"all" | "unanswered" | "flagged">("all");
   const [review, setReview] = useState<any[]>([]);
   const [showReview, setShowReview] = useState(false);
+  const [rulesAccepted, setRulesAccepted] = useState(false);
 
   // Anti-Cheat: Tab Switching Enforcement (3-Strike System)
   const MAX_TAB_SWITCHES = 3;
@@ -579,10 +580,49 @@ export default function StudentTestPage({ params }: { params: { id: string } }) 
                   />
                 </div>
 
-                <div className="pt-2">
+                {/* Clear Exam Rules Box */}
+                <div className="bg-amber-50/70 border border-amber-200/80 rounded-2xl p-4 space-y-2.5">
+                  <div className="flex items-center gap-2 text-xs font-extrabold text-[#92400e] uppercase tracking-wider">
+                    <ShieldAlert size={14} className="text-amber-600" /> Exam Rules — Please Read
+                  </div>
+                  <ul className="text-xs text-slate-700 space-y-1.5 leading-relaxed font-medium">
+                    <li className="flex items-start gap-2">
+                      <span className="text-amber-600 font-bold">•</span>
+                      <span><strong>3-Strike Tab Proctoring:</strong> Leaving this tab, minimizing the window, or switching apps counts as a strike. On your <strong>3rd strike</strong>, your quiz is automatically submitted.</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-amber-600 font-bold">•</span>
+                      <span><strong>Single Attempt Only:</strong> Retakes are not allowed. Your progress auto-saves, so refreshing will not reset your questions.</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-amber-600 font-bold">•</span>
+                      <span><strong>Copy/Paste Disabled:</strong> Copying, pasting, and right-clicking are blocked during the exam.</span>
+                    </li>
+                    {test.time_limit > 0 && (
+                      <li className="flex items-start gap-2">
+                        <span className="text-amber-600 font-bold">•</span>
+                        <span><strong>Continuous Timer:</strong> Your {test.time_limit}-minute timer runs continuously once started and auto-submits when time expires.</span>
+                      </li>
+                    )}
+                  </ul>
+                  <label className="flex items-center gap-2.5 pt-2 border-t border-amber-200/70 cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      required
+                      checked={rulesAccepted}
+                      onChange={(e) => setRulesAccepted(e.target.checked)}
+                      className="w-4 h-4 rounded border-amber-300 text-[#0c1322] focus:ring-[#0c1322] accent-[#0c1322]"
+                    />
+                    <span className="text-xs font-bold text-[#0c1322]">
+                      I understand and agree to follow these exam rules
+                    </span>
+                  </label>
+                </div>
+
+                <div className="pt-1">
                   <button 
                     type="submit" 
-                    disabled={isCheckingSubmission}
+                    disabled={isCheckingSubmission || !rulesAccepted}
                     className="w-full py-3.5 bg-[#0c1322] hover:bg-[#182542] text-white font-bold rounded-xl flex items-center justify-center gap-2 shadow-md shadow-slate-900/10 hover:scale-[1.01] active:scale-[0.98] transition-all disabled:opacity-50 text-sm"
                   >
                     {isCheckingSubmission ? (
