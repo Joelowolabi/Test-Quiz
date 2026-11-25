@@ -16,38 +16,57 @@ export default function DashboardLayout({
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let mounted = true;
+
     const checkAuth = async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
+        if (sessionStorage.getItem("teacher_auth") === "true") {
+          if (mounted) {
+            setIsAuthenticated(true);
+            setLoading(false);
+          }
+          return;
+        }
+
+        const timeoutPromise = new Promise<{ data: { session: null } }>((resolve) =>
+          setTimeout(() => resolve({ data: { session: null } }), 3000)
+        );
+        const { data: { session } } = await Promise.race([
+          supabase.auth.getSession(),
+          timeoutPromise,
+        ]);
+
+        if (!mounted) return;
+
         if (session) {
           setIsAuthenticated(true);
         } else {
-          const auth = sessionStorage.getItem("teacher_auth");
-          if (auth !== "true") {
-            router.push("/login");
-            return;
-          }
-          setIsAuthenticated(true);
+          router.replace("/login");
+          return;
         }
       } catch (err) {
         console.error("Session check error", err);
+        if (mounted) router.replace("/login");
       } finally {
-        setLoading(false);
+        if (mounted) setLoading(false);
       }
     };
     
     checkAuth();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (!mounted) return;
       if (session) {
         setIsAuthenticated(true);
+        setLoading(false);
       } else if (sessionStorage.getItem("teacher_auth") !== "true") {
         setIsAuthenticated(false);
-        router.push("/login");
+        router.replace("/login");
       }
     });
 
     return () => {
+      mounted = false;
       subscription.unsubscribe();
     };
   }, [router]);
